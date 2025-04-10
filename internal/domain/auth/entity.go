@@ -1,7 +1,7 @@
 package auth
 
 type LoginCredentials struct {
-	Email    string
+	Username string
 	Password string
 }
 

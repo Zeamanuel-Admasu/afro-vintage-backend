@@ -1,11 +1,21 @@
 package auth
 
-import "context"
+import (
+	"context"
 
-type AuthService interface {
-	Login(ctx context.Context, creds LoginCredentials) (string, error) // returns JWT
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
+)
+
+type PasswordService interface {
 	HashPassword(password string) (string, error)
 	CheckPasswordHash(password, hash string) bool
-	GenerateToken(userID, role string) (string, error)
+}
+
+type JWTService interface {
+	GenerateToken(userID, username, role string) (string, error)
 	ParseToken(token string) (*TokenClaims, error)
+}
+type AuthUsecase interface {
+	Login(ctx context.Context, creds LoginCredentials) (string, error)
+	Register(ctx context.Context, user user.User) (string, error)
 }

@@ -1,5 +1,7 @@
 package user
 
+import "time"
+
 type Role string
 
 const (
@@ -12,8 +14,9 @@ const (
 type User struct {
 	ID        string
 	Name      string
+	Username  string
 	Email     string
 	Password  string
 	Role      Role
-	CreatedAt string
+	CreatedAt time.Time
 }
