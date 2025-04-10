@@ -1,22 +1,52 @@
 package main
 
 import (
-	// ...
+	"github.com/gin-gonic/gin"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/config"
-	productinfra "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/infrastructure/mongo"
+	authinfra "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/infrastructure/auth"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/infrastructure/mongo"
+
+	authusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/auth"
+	productusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/product"
+
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/interface/controllers"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/interface/routes"
-	productusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/product"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	db := config.ConnectMongo("mongodb://localhost:27017", "afro_vintage")
+	// Load .env variables
+	config.LoadEnv()
 
-	productRepo := productinfra.NewMongoProductRepository(db)
+	// Load grouped app config
+	appConfig := config.LoadAppConfig()
+
+	// Connect to MongoDB
+	db := config.ConnectMongo(appConfig.DBURI, appConfig.DBName)
+
+	// Init shared services
+	jwtSvc := authinfra.NewJWTService(appConfig.JWTSecret)
+	passSvc := authinfra.NewPasswordService()
+
+	// Init Repositories
+	userRepo := mongo.NewMongoUserRepository(db)
+	productRepo := mongo.NewMongoProductRepository(db)
+
+	// Init Usecases
+	// userUC := userusecase.NewUserUsecase(userRepo)
+	authUC := authusecase.NewAuthUsecase(userRepo, passSvc, jwtSvc)
 	productUC := productusecase.NewProductUsecase(productRepo)
+
+	// Init Controllers
+	authCtrl := controllers.NewAuthController(authUC)
 	productCtrl := controllers.NewProductController(productUC)
+
+	// Init Gin Engine and Routes
 	r := gin.Default()
-	routes.RegisterProductRoutes(r, productCtrl)
+
+	routes.RegisterAuthRoutes(r, authCtrl)
+	routes.RegisterProductRoutes(r, productCtrl, jwtSvc)
+
+	// Run server
+	r.Run(":8080")
 }

@@ -35,6 +35,10 @@ func (uc *authUsecase) Login(ctx context.Context, creds auth.LoginCredentials) (
 		return "", errors.New("invalid username or password")
 	}
 
+	if creds.Role != "" && creds.Role != string(u.Role) {
+		return "", errors.New("access denied: user is not a " + creds.Role)
+	}
+
 	token, err := uc.jwtService.GenerateToken(u.ID, u.Username, string(u.Role))
 	if err != nil {
 		return "", err

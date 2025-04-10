@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ConnectMongo connects to the Mongo database using URI and DB name
 func ConnectMongo(uri string, dbName string) *mongo.Database {
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {

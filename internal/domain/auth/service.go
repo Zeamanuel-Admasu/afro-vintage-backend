@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type PasswordService interface {
@@ -13,7 +14,7 @@ type PasswordService interface {
 
 type JWTService interface {
 	GenerateToken(userID, username, role string) (string, error)
-	ParseToken(token string) (*TokenClaims, error)
+	ParseToken(token string) (*jwt.Token, jwt.MapClaims, error)
 }
 type AuthUsecase interface {
 	Login(ctx context.Context, creds LoginCredentials) (string, error)

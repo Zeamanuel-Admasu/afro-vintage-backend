@@ -1,18 +1,20 @@
 package routes
 
 import (
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/auth"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/interface/controllers"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/interface/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterProductRoutes(r *gin.Engine, ctrl *controllers.ProductController) {
+func RegisterProductRoutes(r *gin.Engine, ctrl *controllers.ProductController, jwtSvc auth.JWTService) {
 	productGroup := r.Group("/products")
-	{
-		productGroup.POST("", ctrl.Create)
-		productGroup.GET("/:id", ctrl.GetByID)
-		productGroup.GET("", ctrl.ListAvailable)
-		productGroup.GET("/reseller/:id", ctrl.ListByReseller)
-		productGroup.PUT("/:id", ctrl.Update)
-		productGroup.DELETE("/:id", ctrl.Delete)
-	}
+	productGroup.Use(middlewares.AuthMiddleware(jwtSvc)) // All routes require valid token
+
+	productGroup.POST("", middlewares.AuthorizeRoles("reseller", "admin"), ctrl.Create)
+	productGroup.GET("/:id", middlewares.AuthorizeRoles("consumer", "reseller", "admin"), ctrl.GetByID)
+	productGroup.GET("", middlewares.AuthorizeRoles("consumer", "reseller", "admin"), ctrl.ListAvailable)
+	productGroup.GET("/reseller/:id", middlewares.AuthorizeRoles("admin", "reseller"), ctrl.ListByReseller)
+	productGroup.PUT("/:id", middlewares.AuthorizeRoles("reseller", "admin"), ctrl.Update)
+	productGroup.DELETE("/:id", middlewares.AuthorizeRoles("reseller", "admin"), ctrl.Delete)
 }

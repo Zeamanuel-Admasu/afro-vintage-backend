@@ -3,6 +3,7 @@ package auth
 type LoginCredentials struct {
 	Username string
 	Password string
+	Role     string
 }
 
 type TokenClaims struct {
