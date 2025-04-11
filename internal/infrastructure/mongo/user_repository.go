@@ -1,12 +1,13 @@
 package mongo
 
 import (
-    "context"
-    "errors"
-    "time"
-    "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/mongo"
+	"context"
+	"errors"
+	"time"
+
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type mongoUserRepository struct {
@@ -43,9 +44,9 @@ func NewMongoUserRepository(db *mongo.Database) user.Repository {
 }
 
 func (r *mongoUserRepository) CreateUser(ctx context.Context, u *user.User) error {
-    u.CreatedAt = time.Now()
-    _, err := r.collection.InsertOne(ctx, u)
-    return err
+	u.CreatedAt = time.Now()
+	_, err := r.collection.InsertOne(ctx, u)
+	return err
 }
 
 func (r *mongoUserRepository) DeleteUser(ctx context.Context, id string) error {
