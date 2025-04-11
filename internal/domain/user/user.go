@@ -11,12 +11,13 @@ const (
 	RoleAdmin    Role = "admin"
 )
 
+
 type User struct {
-	ID        string
-	Name      string
-	Username  string
-	Email     string
-	Password  string
-	Role      Role
-	CreatedAt time.Time
+    ID        string    `bson:"_id"`
+    Name      string    `bson:"name"`
+    Username  string    `bson:"username"`
+    Email     string    `bson:"email"`
+    Password  string    `bson:"password"`
+    Role      string    `bson:"role"`
+    CreatedAt time.Time `bson:"created_at"`
 }

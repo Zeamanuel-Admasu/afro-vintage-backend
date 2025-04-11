@@ -8,18 +8,19 @@ const (
 	Unsorted   SortingLevel = "unsorted"
 )
 
+
 type Bundle struct {
-	ID                 string
-	SupplierID         string
-	Title              string
-	Description        string
-	SampleImage        string
-	Quantity           int
-	Grade              string
-	SortingLevel       SortingLevel
-	EstimatedBreakdown map[string]int `bson:"estimatedBreakdown,omitempty"` // Only for semi
-	Type               string         `bson:"type,omitempty"`               // For sorted/semi
-	Price              float64
-	Status             string
-	CreatedAt          string
+    ID                 string         `bson:"_id"`
+    SupplierID         string         `bson:"supplierid"`
+    Title              string         `bson:"title"`
+    Description        string         `bson:"description"`
+    SampleImage        string         `bson:"sampleimage"`
+    Quantity           int            `bson:"quantity"`
+    Grade              string         `bson:"grade"`
+    SortingLevel       SortingLevel   `bson:"sortinglevel"`
+    EstimatedBreakdown map[string]int `bson:"estimatedBreakdown,omitempty"`
+    Type               string         `bson:"type,omitempty"`
+    Price              float64        `bson:"price"`
+    Status             string         `bson:"status"`
+    CreatedAt          string         `bson:"createdat"`
 }
