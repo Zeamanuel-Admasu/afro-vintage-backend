@@ -1,11 +1,13 @@
 package middlewares
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/auth"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func AuthMiddleware(jwtService auth.JWTService) gin.HandlerFunc {
@@ -23,14 +25,28 @@ func AuthMiddleware(jwtService auth.JWTService) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userID", claims["user_id"])
+		userID, ok := claims["user_id"].(string)
+		if !ok || userID == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing user ID in token"})
+			return
+		}
+
+		// Debug log for userID
+		log.Printf("Extracted userID from token: %s", userID)
+
+		// Validate userID format
+		if _, err := primitive.ObjectIDFromHex(userID); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format in token"})
+			return
+		}
+
+		c.Set("userID", userID)
 		c.Set("username", claims["username"])
 		c.Set("role", claims["role"])
 		c.Next()
 	}
 }
 
-// AuthorizeRoles allows access for any of the provided roles
 func AuthorizeRoles(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get("role")

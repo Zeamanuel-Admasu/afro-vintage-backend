@@ -2,6 +2,7 @@ package productusecase
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
@@ -10,7 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// MockRepository is a mock implementation of the product.Repository interface.
 type MockRepository struct {
 	mock.Mock
 }
@@ -106,6 +106,25 @@ func (suite *ProductUsecaseTestSuite) TestListProductsByReseller() {
 	suite.mockRepo.AssertExpectations(suite.T())
 }
 
+func (suite *ProductUsecaseTestSuite) TestListProductsByReseller_EmptyState() {
+	suite.mockRepo.On("ListProductsByReseller", mock.Anything, "reseller-id", 1, 10).Return([]*product.Product{}, nil)
+
+	result, err := suite.usecase.ListProductsByReseller(context.Background(), "reseller-id", 1, 10)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), result)
+	suite.mockRepo.AssertExpectations(suite.T())
+}
+
+func (suite *ProductUsecaseTestSuite) TestListProductsByReseller_LoadFailure() {
+	suite.mockRepo.On("ListProductsByReseller", mock.Anything, "reseller-id", 1, 10).Return(nil, errors.New("database error"))
+
+	result, err := suite.usecase.ListProductsByReseller(context.Background(), "reseller-id", 1, 10)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), result)
+	assert.Equal(suite.T(), "database error", err.Error())
+	suite.mockRepo.AssertExpectations(suite.T())
+}
+
 func (suite *ProductUsecaseTestSuite) TestListAvailableProducts() {
 	expectedProducts := []*product.Product{
 		{ID: "test-id-1", Title: "Product 1"},
@@ -117,6 +136,25 @@ func (suite *ProductUsecaseTestSuite) TestListAvailableProducts() {
 	result, err := suite.usecase.ListAvailableProducts(context.Background(), 1, 10)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedProducts, result)
+	suite.mockRepo.AssertExpectations(suite.T())
+}
+
+func (suite *ProductUsecaseTestSuite) TestListAvailableProducts_EmptyState() {
+	suite.mockRepo.On("ListAvailableProducts", mock.Anything, 1, 10).Return([]*product.Product{}, nil)
+
+	result, err := suite.usecase.ListAvailableProducts(context.Background(), 1, 10)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), result)
+	suite.mockRepo.AssertExpectations(suite.T())
+}
+
+func (suite *ProductUsecaseTestSuite) TestListAvailableProducts_LoadFailure() {
+	suite.mockRepo.On("ListAvailableProducts", mock.Anything, 1, 10).Return(nil, errors.New("database error"))
+
+	result, err := suite.usecase.ListAvailableProducts(context.Background(), 1, 10)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), result)
+	assert.Equal(suite.T(), "database error", err.Error())
 	suite.mockRepo.AssertExpectations(suite.T())
 }
 

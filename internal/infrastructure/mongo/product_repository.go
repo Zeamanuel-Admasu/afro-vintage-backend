@@ -2,10 +2,12 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -40,19 +42,29 @@ func (r *mongoProductRepository) ListProductsByReseller(ctx context.Context, res
 	skip := (page - 1) * limit
 	opts := options.Find().SetSkip(int64(skip)).SetLimit(int64(limit))
 
-	cursor, err := r.collection.Find(ctx, bson.M{"resellerid": resellerID}, opts)
+	resellerObjectID, err := primitive.ObjectIDFromHex(resellerID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid reseller ID: %w", err)
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"reseller_id": resellerObjectID}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
 		var p product.Product
 		if err := cursor.Decode(&p); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode product: %w", err)
 		}
 		products = append(products, &p)
 	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
 	return products, nil
 }
 
@@ -63,17 +75,22 @@ func (r *mongoProductRepository) ListAvailableProducts(ctx context.Context, page
 
 	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("database query failed: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
 		var p product.Product
 		if err := cursor.Decode(&p); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode product: %w", err)
 		}
 		products = append(products, &p)
 	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
 	return products, nil
 }
 

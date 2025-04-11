@@ -1,10 +1,12 @@
 package authinfra
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/auth"
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type jwtService struct {
@@ -16,6 +18,10 @@ func NewJWTService(secretKey string) *jwtService {
 }
 
 func (s *jwtService) GenerateToken(userID, username, role string) (string, error) {
+	if _, err := primitive.ObjectIDFromHex(userID); err != nil {
+		return "", fmt.Errorf("invalid user ID format: %w", err)
+	}
+
 	claims := jwt.MapClaims{
 		"user_id":  userID,
 		"username": username,
