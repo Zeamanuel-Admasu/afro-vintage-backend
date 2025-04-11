@@ -54,3 +54,33 @@ func (u *bundleUsecase) DeleteBundle(ctx context.Context, supplierID string, bun
 
     return nil
 }
+
+func (u *bundleUsecase) GetBundleByID(ctx context.Context, supplierID string, id string) (*bundle.Bundle, error) { // Added
+    bundle, err := u.bundleRepo.GetBundleByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
+    if bundle == nil {
+        return nil, errors.New("bundle not found")
+    }
+    if bundle.SupplierID != supplierID {
+        return nil, errors.New("unauthorized: you can only view your own bundles")
+    }
+    return bundle, nil
+}
+
+func (u *bundleUsecase) UpdateBundle(ctx context.Context, supplierID string, id string, updatedData map[string]interface{}) error { // Added
+    // Fetch the bundle to verify ownership and status
+    bundle, err := u.GetBundleByID(ctx, supplierID, id)
+    if err != nil {
+        return err
+    }
+
+    // Check if the bundle is editable (must be "available")
+    if bundle.Status != "available" {
+        return errors.New("cannot update bundle: bundle must be in 'available' status")
+    }
+
+    // Update the bundle in the repository
+    return u.bundleRepo.UpdateBundle(ctx, id, updatedData)
+}
