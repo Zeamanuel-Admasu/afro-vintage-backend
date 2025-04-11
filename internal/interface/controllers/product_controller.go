@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ProductController struct {
@@ -21,6 +23,21 @@ func (h *ProductController) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	resellerID, err := primitive.ObjectIDFromHex(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+	p.ResellerID = resellerID
+
+	p.ID = p.GenerateID()
+
 	if err := h.Usecase.AddProduct(c.Request.Context(), &p); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -39,7 +56,10 @@ func (h *ProductController) GetByID(c *gin.Context) {
 }
 
 func (h *ProductController) ListAvailable(c *gin.Context) {
-	products, err := h.Usecase.ListAvailableProducts(c.Request.Context())
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	products, err := h.Usecase.ListAvailableProducts(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch products"})
 		return
@@ -49,7 +69,10 @@ func (h *ProductController) ListAvailable(c *gin.Context) {
 
 func (h *ProductController) ListByReseller(c *gin.Context) {
 	resellerID := c.Param("id")
-	products, err := h.Usecase.ListProductsByReseller(c.Request.Context(), resellerID)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	products, err := h.Usecase.ListProductsByReseller(c.Request.Context(), resellerID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch products"})
 		return

@@ -7,6 +7,7 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type mongoProductRepository struct {
@@ -34,9 +35,12 @@ func (r *mongoProductRepository) GetProductByID(ctx context.Context, id string) 
 	return &p, nil
 }
 
-func (r *mongoProductRepository) ListProductsByReseller(ctx context.Context, resellerID string) ([]*product.Product, error) {
+func (r *mongoProductRepository) ListProductsByReseller(ctx context.Context, resellerID string, page, limit int) ([]*product.Product, error) {
 	var products []*product.Product
-	cursor, err := r.collection.Find(ctx, bson.M{"resellerid": resellerID})
+	skip := (page - 1) * limit
+	opts := options.Find().SetSkip(int64(skip)).SetLimit(int64(limit))
+
+	cursor, err := r.collection.Find(ctx, bson.M{"resellerid": resellerID}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +56,12 @@ func (r *mongoProductRepository) ListProductsByReseller(ctx context.Context, res
 	return products, nil
 }
 
-func (r *mongoProductRepository) ListAvailableProducts(ctx context.Context) ([]*product.Product, error) {
+func (r *mongoProductRepository) ListAvailableProducts(ctx context.Context, page, limit int) ([]*product.Product, error) {
 	var products []*product.Product
-	cursor, err := r.collection.Find(ctx, bson.M{})
+	skip := (page - 1) * limit
+	opts := options.Find().SetSkip(int64(skip)).SetLimit(int64(limit))
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, err
 	}

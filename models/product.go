@@ -1,6 +1,7 @@
 package models
 
 type ProductListingRequest struct {
+	ID          string  `json:"id,omitempty"` 
 	Photo       string  `json:"photo" binding:"required"`
 	Title       string  `json:"title" binding:"required"`
 	Size        string  `json:"size" binding:"required"`
