@@ -2,6 +2,7 @@ package mongo
 
 import (
     "context"
+    "errors" // Added
     "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
@@ -26,7 +27,7 @@ func (r *BundleRepository) GetBundleByID(ctx context.Context, id string) (*bundl
     var bundle bundle.Bundle
     err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&bundle)
     if err == mongo.ErrNoDocuments {
-        return nil, nil
+        return nil, errors.New("bundle not found") // Updated: Return a specific error message
     }
     if err != nil {
         return nil, err
@@ -129,6 +130,17 @@ func (r *BundleRepository) DeleteBundle(ctx context.Context, bundleID string) er
     }
     if result.MatchedCount == 0 {
         return mongo.ErrNoDocuments
+    }
+    return nil
+}
+
+func (r *BundleRepository) UpdateBundle(ctx context.Context, id string, updatedData map[string]interface{}) error { // Added
+    result, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": updatedData})
+    if err != nil {
+        return err
+    }
+    if result.MatchedCount == 0 {
+        return errors.New("bundle not found")
     }
     return nil
 }
