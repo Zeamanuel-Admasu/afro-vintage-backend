@@ -23,12 +23,12 @@ func (uc *productUsecase) GetProductByID(ctx context.Context, id string) (*produ
 	return uc.repo.GetProductByID(ctx, id)
 }
 
-func (uc *productUsecase) ListProductsByReseller(ctx context.Context, resellerID string) ([]*product.Product, error) {
-	return uc.repo.ListProductsByReseller(ctx, resellerID)
+func (uc *productUsecase) ListProductsByReseller(ctx context.Context, resellerID string, page, limit int) ([]*product.Product, error) {
+	return uc.repo.ListProductsByReseller(ctx, resellerID, page, limit)
 }
 
-func (uc *productUsecase) ListAvailableProducts(ctx context.Context) ([]*product.Product, error) {
-	return uc.repo.ListAvailableProducts(ctx)
+func (uc *productUsecase) ListAvailableProducts(ctx context.Context, page, limit int) ([]*product.Product, error) {
+	return uc.repo.ListAvailableProducts(ctx, page, limit)
 }
 
 func (uc *productUsecase) DeleteProduct(ctx context.Context, id string) error {

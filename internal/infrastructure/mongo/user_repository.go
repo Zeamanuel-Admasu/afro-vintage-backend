@@ -8,6 +8,7 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type mongoUserRepository struct {
@@ -44,10 +45,18 @@ func NewMongoUserRepository(db *mongo.Database) user.Repository {
 }
 
 func (r *mongoUserRepository) CreateUser(ctx context.Context, u *user.User) error {
+	// Convert user ID to ObjectID if necessary
+	objectID, err := primitive.ObjectIDFromHex(u.ID)
+	if err != nil {
+		objectID = primitive.NewObjectID() // Generate a new ObjectID if invalid
+		u.ID = objectID.Hex()
+	}
+
 	u.CreatedAt = time.Now()
-	_, err := r.collection.InsertOne(ctx, u)
+	_, err = r.collection.InsertOne(ctx, u)
 	return err
 }
+
 func (r *mongoUserRepository) DeleteUser(ctx context.Context, id string) error {
 	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	return err

@@ -8,7 +8,8 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/auth"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type authUsecase struct {
@@ -48,32 +49,35 @@ func (uc *authUsecase) Login(ctx context.Context, creds auth.LoginCredentials) (
 }
 
 func (uc *authUsecase) Register(ctx context.Context, newUser user.User) (string, error) {
-	// check if user already exists
+	// Check if user already exists
 	existing, _ := uc.userRepo.FindUserByUsername(ctx, newUser.Username)
 	if existing != nil {
 		return "", errors.New("user already exists")
 	}
 
-	// hash password
+	// Hash password
 	hashed, err := uc.passwordService.HashPassword(newUser.Password)
 	if err != nil {
 		return "", err
 	}
-	newUser.ID = uuid.NewString()
+
+	// Generate a valid ObjectID for the user
+	objectID := primitive.NewObjectID()
+	newUser.ID = objectID.Hex()
 	newUser.Password = hashed
 	newUser.CreatedAt = time.Now()
 
-	// default role to "consumer" if not set
+	// Default role to "consumer" if not set
 	if newUser.Role == "" {
 		newUser.Role = "consumer"
 	}
 
-	// save user
+	// Save user
 	if err := uc.userRepo.CreateUser(ctx, &newUser); err != nil {
 		return "", err
 	}
 
-	// generate token
+	// Generate token
 	token, err := uc.jwtService.GenerateToken(newUser.ID, newUser.Username, string(newUser.Role))
 	if err != nil {
 		return "", err

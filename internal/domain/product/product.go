@@ -1,8 +1,12 @@
 package product
 
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
 type Product struct {
-	ID          string
-	ResellerID  string
+	ID          string             `bson:"_id"`
+	ResellerID  primitive.ObjectID `bson:"reseller_id"`
 	Title       string
 	Description string
 	Size        string
@@ -11,4 +15,8 @@ type Product struct {
 	Price       float64
 	ImageURL    string
 	CreatedAt   string
+}
+
+func (p *Product) GenerateID() string {
+	return primitive.NewObjectID().Hex()
 }
