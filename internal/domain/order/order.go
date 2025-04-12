@@ -3,9 +3,10 @@ package order
 type OrderStatus string
 
 const (
-	StatusPending   OrderStatus = "pending"
-	StatusShipped   OrderStatus = "shipped"
-	StatusDelivered OrderStatus = "delivered"
+	Pending   OrderStatus = "pending"
+	Shipped   OrderStatus = "shipped"
+	Delivered OrderStatus = "delivered"
+	Failed    OrderStatus = "failed"
 )
 
 type Order struct {
