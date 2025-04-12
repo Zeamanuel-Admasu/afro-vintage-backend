@@ -34,6 +34,7 @@ func main() {
 	userRepo := mongo.NewMongoUserRepository(db)
 	productRepo := mongo.NewMongoProductRepository(db)
 	bundleRepo := mongo.NewBundleRepository(db)
+	orderRepo := mongo.NewMongoOrderRepository(db) // Add order repository
 
 	// Init Usecases
 	userUC := userusecase.NewUserUsecase(userRepo)
@@ -46,6 +47,7 @@ func main() {
 	adminCtrl := controllers.NewAdminController(userUC)
 	productCtrl := controllers.NewProductController(productUC)
 	bundleCtrl := controllers.NewBundleController(bundleUC)
+	consumerCtrl := controllers.NewConsumerController(orderRepo) // Add consumer controller
 
 	// Init Gin Engine and Routes
 	r := gin.Default()
@@ -54,6 +56,7 @@ func main() {
 	routes.RegisterProductRoutes(r, productCtrl, jwtSvc)
 	routes.RegisterAdminRoutes(r, adminCtrl, jwtSvc)
 	routes.RegisterBundleRoutes(r, bundleCtrl, jwtSvc)
+	routes.RegisterConsumerRoutes(r, consumerCtrl, jwtSvc) // Register consumer routes
 
 	// Run server
 	r.Run(":8080")
