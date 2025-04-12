@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
@@ -45,7 +46,9 @@ func (c *ConsumerController) GetOrderHistory(ctx *gin.Context) {
 	// Simulate delivery status
 	for i := range orders {
 		createdAt, _ := time.Parse(time.RFC3339, orders[i].CreatedAt)
-		if time.Since(createdAt) > 3*time.Minute && orders[i].Status == order.Pending {
+		if time.Since(createdAt) > 10*time.Minute && orders[i].Status == order.Pending {
+			orders[i].Status = order.Failed
+		} else if time.Since(createdAt) > 3*time.Minute && orders[i].Status == order.Pending {
 			orders[i].Status = order.Delivered
 		}
 	}
@@ -54,7 +57,7 @@ func (c *ConsumerController) GetOrderHistory(ctx *gin.Context) {
 	if status != "" {
 		filteredOrders := []*order.Order{}
 		for _, o := range orders {
-			if string(o.Status) == status {
+			if strings.ToLower(string(o.Status)) == strings.ToLower(status) { 
 				filteredOrders = append(filteredOrders, o)
 			}
 		}
@@ -80,9 +83,14 @@ func (c *ConsumerController) GetOrderHistory(ctx *gin.Context) {
 	// Map to response format
 	var response []map[string]interface{}
 	for _, o := range paginatedOrders {
+		itemTitle := ""
+		if len(o.ProductIDs) > 0 {
+			itemTitle = o.ProductIDs[0] // Use the first product ID if available
+		}
+
 		response = append(response, map[string]interface{}{
 			"orderId":               o.ID,
-			"itemTitle":             o.ProductIDs[0], // Assuming single product per order for simplicity
+			"itemTitle":             itemTitle,
 			"price":                 o.TotalPrice,
 			"imageUrl":              "https://example.com/image.jpg", // Placeholder
 			"status":                o.Status,
