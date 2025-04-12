@@ -9,7 +9,7 @@ import (
 
 func RegisterProductRoutes(r *gin.Engine, ctrl *controllers.ProductController, jwtSvc auth.JWTService) {
 	productGroup := r.Group("/products")
-	productGroup.Use(middlewares.AuthMiddleware(jwtSvc)) // All routes require valid token
+	productGroup.Use(middlewares.AuthMiddleware(jwtSvc)) 
 
 	productGroup.POST("", middlewares.AuthorizeRoles("reseller", "admin"), ctrl.Create)
 	productGroup.GET("/:id", middlewares.AuthorizeRoles("consumer", "reseller", "admin"), ctrl.GetByID)
