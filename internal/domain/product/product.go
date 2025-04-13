@@ -13,6 +13,7 @@ type Product struct {
 	Type        string
 	Grade       string
 	Price       float64
+	Status      string
 	ImageURL    string
 	CreatedAt   string
 }
