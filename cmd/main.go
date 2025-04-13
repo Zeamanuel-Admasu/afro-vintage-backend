@@ -44,7 +44,7 @@ func main() {
 	authUC := authusecase.NewAuthUsecase(userRepo, passSvc, jwtSvc)
 	productUC := productusecase.NewProductUsecase(productRepo)
 	bundleUC := bundleusecase.NewBundleUsecase(bundleRepo)
-	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo)
+	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo, productRepo)
 
 	// Init Controllers
 	authCtrl := controllers.NewAuthController(authUC)

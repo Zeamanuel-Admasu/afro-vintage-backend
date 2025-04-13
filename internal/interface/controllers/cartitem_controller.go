@@ -7,7 +7,6 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/cartitem"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/models"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type CartItemController struct {
@@ -21,7 +20,6 @@ func NewCartItemController(usecase cartitem.Usecase) *CartItemController {
 	}
 }
 
-// AddCartItem handles POST /api/cart/items
 func (ctr *CartItemController) AddCartItem(c *gin.Context) {
 	var req models.CreateCartItemRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -36,25 +34,13 @@ func (ctr *CartItemController) AddCartItem(c *gin.Context) {
 		return
 	}
 
-	// Create a new CartItem instance.
-	cartItem := &cartitem.CartItem{
-		ID:        uuid.New().String(),
-		UserID:    userID,
-		ListingID: req.ListingID,
-		Title:     req.Title,
-		Price:     req.Price,
-		ImageURL:  req.ImageURL,
-		Grade:     req.Grade,
-		CreatedAt: time.Now(),
-	}
-
-	err := ctr.usecase.AddCartItem(c.Request.Context(), userID, cartItem)
-	if err != nil {
+	// Call the usecase with only the product (listing) ID
+	if err := ctr.usecase.AddCartItem(c.Request.Context(), userID, req.ListingID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "item added to cart", "cart_item": cartItem})
+	c.JSON(http.StatusCreated, gin.H{"message": "item added to cart"})
 }
 
 // GetCartItems handles GET /api/cart

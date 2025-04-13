@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/cartitem"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
+	"github.com/google/uuid"
 )
 
 // UnavailableItem represents a cart item that failed validation.
@@ -26,9 +28,10 @@ func NewCartItemUsecase(repo cartitem.Repository, productRepo product.Repository
 }
 
 // AddCartItem adds an item to the user's cart after ensuring no duplicates.
-func (u *cartItemUsecase) AddCartItem(ctx context.Context, userID string, item *cartitem.CartItem) error {
-	// Additional validations can be added here (e.g. checking listing availability)
-	prod, err := u.productRepo.GetProductByID(ctx, item.ListingID)
+
+func (u *cartItemUsecase) AddCartItem(ctx context.Context, userID string, listingID string) error {
+	// Fetch product details using the provided productID (listingID).
+	prod, err := u.productRepo.GetProductByID(ctx, listingID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch product: %w", err)
 	}
@@ -37,9 +40,22 @@ func (u *cartItemUsecase) AddCartItem(ctx context.Context, userID string, item *
 	}
 	// Check that the product is available.
 	if prod.Status != "available" {
-		return fmt.Errorf("product %s is not available", item.ListingID)
+		return fmt.Errorf("product %s is not available", listingID)
 	}
-	return u.repo.CreateCartItem(ctx, item)
+
+	// Build a new CartItem using the product details.
+	cartItem := &cartitem.CartItem{
+		ID:        uuid.NewString(),
+		UserID:    userID,
+		ListingID: prod.ID, // Using product.ID as the listing id.
+		Title:     prod.Title,
+		Price:     prod.Price,
+		ImageURL:  prod.ImageURL,
+		Grade:     prod.Grade,
+		CreatedAt: time.Now(),
+	}
+
+	return u.repo.CreateCartItem(ctx, cartItem)
 }
 
 // GetCartItems retrieves all cart items for the given user.

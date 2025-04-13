@@ -9,6 +9,6 @@ type CartItem struct {
 	Title     string    `bson:"title" json:"title"`
 	Price     float64   `bson:"price" json:"price"`
 	ImageURL  string    `bson:"imageurl" json:"imageurl"`
-	Grade     int       `bson:"grade" json:"grade"` // Reseller's assigned rating (e.g., 93)
+	Grade     string    `bson:"grade" json:"grade"` // Reseller's assigned rating (e.g., 93)
 	CreatedAt time.Time `bson:"createdat" json:"createdat"`
 }
