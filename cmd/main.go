@@ -14,9 +14,11 @@ import (
 	cartitemusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/cartitem"
 
 	bundleusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/bundle"
+	orderusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/order"
 	productusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/product"
 	reviewusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/review"
 	userusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/user"
+	warehouse_usecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/warehouse"
 )
 
 func main() {
@@ -40,9 +42,11 @@ func main() {
 	userRepo := mongo.NewMongoUserRepository(db)
 	productRepo := mongo.NewMongoProductRepository(db)
 	bundleRepo := mongo.NewBundleRepository(db)
-	orderRepo := mongo.NewMongoOrderRepository(db) // Add order repository
+	orderRepo := mongo.NewMongoOrderRepository(db)         // Add order repository
 	cartItemRepo := mongo.NewCartItemRepository(db)
 	reviewRepo := mongo.NewReviewRepository(db) // Add review repository
+	warehouseRepo := mongo.NewMongoWarehouseRepository(db) // Add warehouse repository
+	paymentRepo := mongo.NewMongoPaymentRepository(db)     // Add payment repository
 
 	// Init Usecases
 	userUC := userusecase.NewUserUsecase(userRepo)
@@ -51,15 +55,20 @@ func main() {
 	bundleUC := bundleusecase.NewBundleUsecase(bundleRepo)
 	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo, productRepo)
 	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo) // Add review usecase
+	orderSvc := orderusecase.NewOrderUsecase(bundleRepo, orderRepo, warehouseRepo, paymentRepo) // Add order service
+	warehouseSvc := warehouse_usecase.NewWarehouseUseCase(warehouseRepo)
 
 	// Init Controllers
 	authCtrl := controllers.NewAuthController(authUC)
 	adminCtrl := controllers.NewAdminController(userUC)
 	productCtrl := controllers.NewProductController(productUC)
 	bundleCtrl := controllers.NewBundleController(bundleUC)
-	consumerCtrl := controllers.NewConsumerController(orderRepo) // Add consumer controller
+	consumerCtrl := controllers.NewConsumerController(orderRepo)
+	supplierCtrl := controllers.NewSupplierController(orderSvc) // Add consumer controller
 	cartItemCtrl := controllers.NewCartItemController(cartItemUC)
 	reviewCtrl := controllers.NewReviewController(reviewUC) // Add review controller
+	warehouseCtrl := controllers.NewWarehouseController(warehouseSvc)
+	orderCtrl := controllers.NewOrderController(orderSvc) // Add order controller
 
 	// Init Gin Engine and Routes
 	r := gin.Default()
@@ -70,7 +79,9 @@ func main() {
 	routes.RegisterBundleRoutes(r, bundleCtrl, jwtSvc)
 	routes.RegisterCartItemRoutes(r, cartItemCtrl, jwtSvc) // Register cart item routes
 
-	routes.RegisterConsumerRoutes(r, consumerCtrl, jwtSvc) // Register consumer routes
+	routes.RegisterOrderRoutes(r, orderCtrl, consumerCtrl, jwtSvc) // Register order routes
+	routes.RegisterSupplierRoutes(r, supplierCtrl, jwtSvc)
+	routes.RegisterWarehouseRoutes(r, warehouseCtrl, jwtSvc)
 
 	// Run server
 	r.Run(":8080")

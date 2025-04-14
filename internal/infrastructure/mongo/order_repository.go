@@ -13,7 +13,11 @@ type mongoOrderRepository struct {
 }
 
 func (r *mongoOrderRepository) UpdateOrderStatus(ctx context.Context, orderID string, status order.OrderStatus) error {
-	panic("unimplemented")
+	filter := bson.M{"order_id": orderID}
+	update := bson.M{"$set": bson.M{"status": status}}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
 }
 
 func (r *mongoOrderRepository) DeleteOrder(ctx context.Context, orderID string) error {
