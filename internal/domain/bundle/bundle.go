@@ -1,5 +1,7 @@
 package bundle
 
+import "time"
+
 type SortingLevel string
 
 const (
@@ -8,19 +10,19 @@ const (
 	Unsorted   SortingLevel = "unsorted"
 )
 
-
 type Bundle struct {
-    ID                 string         `bson:"_id"`
-    SupplierID         string         `bson:"supplierid"`
-    Title              string         `bson:"title"`
-    Description        string         `bson:"description"`
-    SampleImage        string         `bson:"sampleimage"`
-    Quantity           int            `bson:"quantity"`
-    Grade              string         `bson:"grade"`
-    SortingLevel       SortingLevel   `bson:"sortinglevel"`
-    EstimatedBreakdown map[string]int `bson:"estimatedBreakdown,omitempty"`
-    Type               string         `bson:"type,omitempty"`
-    Price              float64        `bson:"price"`
-    Status             string         `bson:"status"`
-    CreatedAt          string         `bson:"createdat"`
+	ID                 string         `bson:"_id"`
+	SupplierID         string         `bson:"supplierid"`
+	Title              string         `bson:"title"`
+	Description        string         `bson:"description"`
+	SampleImage        string         `bson:"sampleimage"`
+	Quantity           int            `bson:"quantity"`
+	Grade              string         `bson:"grade"`
+	SortingLevel       SortingLevel   `bson:"sortinglevel"`
+	EstimatedBreakdown map[string]int `bson:"estimatedBreakdown,omitempty"`
+	Type               string         `bson:"type,omitempty"`
+	Price              float64        `bson:"price"`
+	Status             string         `bson:"status"`
+	CreatedAt          string         `bson:"createdat"`
+	DateListed         time.Time      `json:"dateListed" bson:"datelisted"`
 }

@@ -1,6 +1,8 @@
 package order
 
-import "context"
+import (
+	"context"
+)
 
 type Repository interface {
 	CreateOrder(ctx context.Context, o *Order) error
