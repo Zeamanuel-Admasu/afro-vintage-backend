@@ -15,6 +15,7 @@ import (
 
 	bundleusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/bundle"
 	productusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/product"
+	reviewusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/review"
 	userusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/user"
 )
 
@@ -38,6 +39,7 @@ func main() {
 	bundleRepo := mongo.NewBundleRepository(db)
 	orderRepo := mongo.NewMongoOrderRepository(db) // Add order repository
 	cartItemRepo := mongo.NewCartItemRepository(db)
+	reviewRepo := mongo.NewReviewRepository(db) // Add review repository
 
 	// Init Usecases
 	userUC := userusecase.NewUserUsecase(userRepo)
@@ -45,6 +47,7 @@ func main() {
 	productUC := productusecase.NewProductUsecase(productRepo)
 	bundleUC := bundleusecase.NewBundleUsecase(bundleRepo)
 	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo, productRepo)
+	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo) // Add review usecase
 
 	// Init Controllers
 	authCtrl := controllers.NewAuthController(authUC)
@@ -53,12 +56,13 @@ func main() {
 	bundleCtrl := controllers.NewBundleController(bundleUC)
 	consumerCtrl := controllers.NewConsumerController(orderRepo) // Add consumer controller
 	cartItemCtrl := controllers.NewCartItemController(cartItemUC)
+	reviewCtrl := controllers.NewReviewController(reviewUC) // Add review controller
 
 	// Init Gin Engine and Routes
 	r := gin.Default()
 
 	routes.RegisterAuthRoutes(r, authCtrl)
-	routes.RegisterProductRoutes(r, productCtrl, jwtSvc)
+	routes.RegisterProductRoutes(r, productCtrl, jwtSvc, reviewCtrl) // Register product routes with review controller
 	routes.RegisterAdminRoutes(r, adminCtrl, jwtSvc)
 	routes.RegisterBundleRoutes(r, bundleCtrl, jwtSvc)
 	routes.RegisterCartItemRoutes(r, cartItemCtrl, jwtSvc) // Register cart item routes
