@@ -101,6 +101,64 @@
               "path": ["products"]
             }
           }
+        },
+        {
+          "name": "List Products By Reseller",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/reseller/:id",
+              "host": ["{{base_url}}"],
+              "path": ["products", "reseller", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/:id",
+              "host": ["{{base_url}}"],
+              "path": ["products", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/:id",
+              "host": ["{{base_url}}"],
+              "path": ["products", ":id"]
+            }
+          }
         }
       ]
     },
@@ -144,6 +202,64 @@
               "raw": "{{base_url}}/bundles",
               "host": ["{{base_url}}"],
               "path": ["bundles"]
+            }
+          }
+        },
+        {
+          "name": "Get Bundle By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bundles/:id",
+              "host": ["{{base_url}}"],
+              "path": ["bundles", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Update Bundle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Bundle Title\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bundles/:id",
+              "host": ["{{base_url}}"],
+              "path": ["bundles", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Delete Bundle",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bundles/:id",
+              "host": ["{{base_url}}"],
+              "path": ["bundles", ":id"]
             }
           }
         }
@@ -193,6 +309,24 @@
           }
         },
         {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cart/items/:listingID",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cart", "items", ":listingID"]
+            }
+          }
+        },
+        {
           "name": "Checkout Cart",
           "request": {
             "method": "POST",
@@ -234,6 +368,52 @@
               "raw": "{{base_url}}/products/reviews",
               "host": ["{{base_url}}"],
               "path": ["products", "reviews"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Get Order History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/history",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"]
             }
           }
         }
