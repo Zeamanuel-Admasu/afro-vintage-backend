@@ -23,6 +23,9 @@ func main() {
 	// Load .env variables
 	config.LoadEnv()
 
+	// Set Gin to release mode
+	gin.SetMode(gin.DebugMode)
+
 	// Load grouped app config
 	appConfig := config.LoadAppConfig()
 
