@@ -89,3 +89,20 @@ func (u *bundleUsecase) UpdateBundle(ctx context.Context, supplierID string, id 
 func (uc *bundleUsecase) ListAvailableBundles(ctx context.Context) ([]*bundle.Bundle, error) {
 	return uc.bundleRepo.ListAvailableBundles(ctx)
 }
+func (u *bundleUsecase) DecreaseRemainingItemCount(ctx context.Context, bundleID string) error {
+	b, err := u.bundleRepo.GetBundleByID(ctx, bundleID)
+	if err != nil {
+		return err
+	}
+	if b.RemainingItemCount <= 0 {
+		return errors.New("bundle is fully unpacked")
+	}
+
+	newCount := b.RemainingItemCount - 1
+	return u.bundleRepo.UpdateBundle(ctx, bundleID, map[string]interface{}{
+		"remaining_item_count": newCount,
+	})
+}
+func (u *bundleUsecase) GetBundlePublicByID(ctx context.Context, bundleID string) (*bundle.Bundle, error) {
+	return u.bundleRepo.GetBundleByID(ctx, bundleID)
+}

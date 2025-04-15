@@ -66,8 +66,14 @@ func (repo *mongoPaymentRepository) GetPaymentsByType(ctx context.Context, userI
 
 func (repo *mongoPaymentRepository) GetAllPlatformFees(ctx context.Context) (float64, error) {
 	pipeline := mongo.Pipeline{
-		{{"$group", bson.M{"_id": nil, "totalFees": bson.M{"$sum": "$platformfee"}}}},
+		bson.D{
+			primitive.E{Key: "$group", Value: bson.M{
+				"_id":       nil,
+				"totalFees": bson.M{"$sum": "$platformfee"},
+			}},
+		},
 	}
+
 	cursor, err := repo.collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return 0, err

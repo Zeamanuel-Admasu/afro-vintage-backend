@@ -9,4 +9,5 @@ type Repository interface {
 	MarkItemAsListed(ctx context.Context, itemID string) error
 	MarkItemAsSkipped(ctx context.Context, itemID string) error
 	DeleteItem(ctx context.Context, itemID string) error
+	HasResellerReceivedBundle(ctx context.Context, resellerID string, bundleID string) (bool, error)
 }

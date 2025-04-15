@@ -103,3 +103,26 @@ func (r *mongoProductRepository) UpdateProduct(ctx context.Context, id string, u
 	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": updates})
 	return err
 }
+func (r *mongoProductRepository) GetProductsByBundleID(ctx context.Context, bundleID string) ([]*product.Product, error) {
+	var products []*product.Product
+
+	cursor, err := r.collection.Find(ctx, bson.M{"bundle_id": bundleID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var p product.Product
+		if err := cursor.Decode(&p); err != nil {
+			return nil, err
+		}
+		products = append(products, &p)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}

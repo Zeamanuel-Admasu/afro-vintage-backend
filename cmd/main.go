@@ -17,6 +17,7 @@ import (
 	orderusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/order"
 	productusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/product"
 	reviewusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/review"
+	trustusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/trust"
 	userusecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/user"
 	warehouse_usecase "github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/usecase/warehouse"
 )
@@ -42,27 +43,28 @@ func main() {
 	userRepo := mongo.NewMongoUserRepository(db)
 	productRepo := mongo.NewMongoProductRepository(db)
 	bundleRepo := mongo.NewBundleRepository(db)
-	orderRepo := mongo.NewMongoOrderRepository(db)         // Add order repository
+	orderRepo := mongo.NewMongoOrderRepository(db) // Add order repository
 	cartItemRepo := mongo.NewCartItemRepository(db)
-	reviewRepo := mongo.NewReviewRepository(db) // Add review repository
+	reviewRepo := mongo.NewReviewRepository(db)            // Add review repository
 	warehouseRepo := mongo.NewMongoWarehouseRepository(db) // Add warehouse repository
 	paymentRepo := mongo.NewMongoPaymentRepository(db)     // Add payment repository
 
 	// Init Usecases
 	userUC := userusecase.NewUserUsecase(userRepo)
 	authUC := authusecase.NewAuthUsecase(userRepo, passSvc, jwtSvc)
-	productUC := productusecase.NewProductUsecase(productRepo)
+	productUC := productusecase.NewProductUsecase(productRepo, bundleRepo)
 	bundleUC := bundleusecase.NewBundleUsecase(bundleRepo)
+	trustUC := trustusecase.NewTrustUsecase(productRepo, bundleRepo, userRepo)
 	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo, productRepo)
-	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo) // Add review usecase
+	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo)                           // Add review usecase
 	orderSvc := orderusecase.NewOrderUsecase(bundleRepo, orderRepo, warehouseRepo, paymentRepo) // Add order service
 	warehouseSvc := warehouse_usecase.NewWarehouseUseCase(warehouseRepo)
 
 	// Init Controllers
 	authCtrl := controllers.NewAuthController(authUC)
 	adminCtrl := controllers.NewAdminController(userUC)
-	productCtrl := controllers.NewProductController(productUC)
-	bundleCtrl := controllers.NewBundleController(bundleUC)
+	productCtrl := controllers.NewProductController(productUC, trustUC, bundleUC, warehouseRepo)
+	bundleCtrl := controllers.NewBundleController(bundleUC, userUC)
 	consumerCtrl := controllers.NewConsumerController(orderRepo)
 	supplierCtrl := controllers.NewSupplierController(orderSvc) // Add consumer controller
 	cartItemCtrl := controllers.NewCartItemController(cartItemUC)

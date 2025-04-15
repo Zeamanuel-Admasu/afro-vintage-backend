@@ -67,6 +67,10 @@ func (uc *authUsecase) Register(ctx context.Context, newUser user.User) (string,
 	newUser.Password = hashed
 	newUser.CreatedAt = time.Now()
 
+	if newUser.Role == "supplier" || newUser.Role == "reseller" {
+		newUser.TrustScore = 100
+	}
+
 	// Default role to "consumer" if not set
 	if newUser.Role == "" {
 		newUser.Role = "consumer"

@@ -25,4 +25,7 @@ type Bundle struct {
 	Status             string         `bson:"status"`
 	CreatedAt          string         `bson:"createdat"`
 	DateListed         time.Time      `json:"dateListed" bson:"datelisted"`
+	DeclaredRating     int            `bson:"declared_rating"`
+	EstimatedItemCount int            `bson:"estimated_item_count"` // Total at creation
+	RemainingItemCount int            `bson:"remaining_item_count"`
 }

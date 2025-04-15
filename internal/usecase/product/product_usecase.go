@@ -1,21 +1,50 @@
-// internal/usecase/product/product_usecase.go
 package productusecase
 
 import (
 	"context"
+	"errors"
 
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
 )
 
 type productUsecase struct {
-	repo product.Repository
+	repo       product.Repository
+	bundleRepo bundle.Repository
 }
 
-func NewProductUsecase(repo product.Repository) product.Usecase {
-	return &productUsecase{repo: repo}
+func NewProductUsecase(repo product.Repository, bundleRepo bundle.Repository) product.Usecase {
+	return &productUsecase{
+		repo:       repo,
+		bundleRepo: bundleRepo,
+	}
 }
-
 func (uc *productUsecase) AddProduct(ctx context.Context, p *product.Product) error {
+	if p.BundleID != "" {
+		// Fetch bundle
+		b, err := uc.bundleRepo.GetBundleByID(ctx, p.BundleID)
+		if err != nil {
+			return err
+		}
+
+		// Check available quantity
+		if b.Quantity <= 0 {
+			return errors.New("bundle is out of stock")
+		}
+
+		// Add product first
+		if err := uc.repo.AddProduct(ctx, p); err != nil {
+			return err
+		}
+
+		// Decrement bundle quantity
+		updates := map[string]interface{}{
+			"quantity": b.Quantity - 1,
+		}
+		return uc.bundleRepo.UpdateBundle(ctx, b.ID, updates)
+	}
+
+	// If not tied to a bundle, allow adding normally
 	return uc.repo.AddProduct(ctx, p)
 }
 

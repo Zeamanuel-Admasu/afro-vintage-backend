@@ -63,3 +63,15 @@ func (r *mongoRepository) DeleteItem(ctx context.Context, itemID string) error {
 	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": itemID})
 	return err
 }
+func (r *mongoRepository) HasResellerReceivedBundle(ctx context.Context, resellerID string, bundleID string) (bool, error) {
+	filter := bson.M{
+		"reseller_id": resellerID,
+		"bundle_id":   bundleID,
+		"status":      bson.M{"$in": []string{"arrived", "listed"}},
+	}
+	count, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

@@ -1,20 +1,38 @@
 package controllers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/trust"
+
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ProductController struct {
-	Usecase product.Usecase
+	Usecase       product.Usecase
+	TrustUsecase  trust.Usecase
+	BundleUsecase bundle.Usecase
+	WarehouseRepo warehouse.Repository
 }
 
-func NewProductController(usecase product.Usecase) *ProductController {
-	return &ProductController{Usecase: usecase}
+func NewProductController(
+	prodUC product.Usecase,
+	trustUC trust.Usecase,
+	bundleUC bundle.Usecase,
+	warehouseRepo warehouse.Repository, // ✅ new param
+) *ProductController {
+	return &ProductController{
+		Usecase:       prodUC,
+		TrustUsecase:  trustUC,
+		BundleUsecase: bundleUC,
+		WarehouseRepo: warehouseRepo, // ✅ assign it
+	}
 }
 
 func (h *ProductController) Create(c *gin.Context) {
@@ -24,37 +42,74 @@ func (h *ProductController) Create(c *gin.Context) {
 		return
 	}
 
-	// Extract userID from context
 	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	// Ensure userID is a string
 	userIDStr, ok := userID.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
 		return
 	}
 
-	// Convert userID to primitive.ObjectID
 	resellerID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
 		return
 	}
 
-	// Set ResellerID
+	// ✅ 1. Verify reseller has received the bundle
+	owns, err := h.WarehouseRepo.HasResellerReceivedBundle(c.Request.Context(), userIDStr, p.BundleID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "warehouse check failed"})
+		return
+	}
+	if !owns {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you have not received this bundle in your warehouse yet"})
+		return
+	}
+
+	// ✅ 2. Fetch bundle details (for trust and supplier ID)
+	b, err := h.BundleUsecase.GetBundlePublicByID(c.Request.Context(), p.BundleID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bundle ID"})
+		return
+	}
+
+	// ✅ 3. Prevent unpacking if bundle is fully used
+	if b.RemainingItemCount <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bundle is fully unpacked"})
+		return
+	}
+
+	// ✅ 4. Assign product fields
 	p.ResellerID = resellerID
-
-	// Generate a new ID for the product
+	p.SupplierID = b.SupplierID
 	p.ID = p.GenerateID()
+	p.Status = "available"
 
-	// Add product to the repository
+	// ✅ 5. Save product
 	if err := h.Usecase.AddProduct(c.Request.Context(), &p); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// ✅ 6. Decrease bundle's remaining item count
+	if err := h.BundleUsecase.DecreaseRemainingItemCount(c.Request.Context(), p.BundleID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to decrease bundle quantity"})
+		return
+	}
+
+	// ✅ 7. Trigger supplier trust score update
+	if h.TrustUsecase != nil && p.SupplierID != "" {
+		go h.TrustUsecase.UpdateSupplierTrustScoreOnNewRating(
+			context.Background(), // ✅ use fresh background context
+			p.SupplierID,
+			float64(b.DeclaredRating),
+			p.Rating,
+		)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "product created"})

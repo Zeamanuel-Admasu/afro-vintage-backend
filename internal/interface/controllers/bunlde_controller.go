@@ -5,17 +5,23 @@ import (
 	"time"
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/models"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/models/common"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type BundleController struct {
 	bundleUsecase bundle.Usecase
+	userUsecase   user.Usecase
 }
 
-func NewBundleController(bundleUsecase bundle.Usecase) *BundleController {
-	return &BundleController{bundleUsecase: bundleUsecase}
+func NewBundleController(bundleUsecase bundle.Usecase, userUsecase user.Usecase) *BundleController {
+	return &BundleController{
+		bundleUsecase: bundleUsecase,
+		userUsecase:   userUsecase,
+	}
 }
 
 func (c *BundleController) CreateBundle(ctx *gin.Context) {
@@ -45,6 +51,14 @@ func (c *BundleController) CreateBundle(ctx *gin.Context) {
 		})
 		return
 	}
+	user, err := c.userUsecase.GetByID(ctx, supplierIDStr)
+	if err != nil || user.IsBlacklisted {
+		ctx.JSON(http.StatusForbidden, common.APIResponse{
+			Success: false,
+			Message: "you are blacklisted and cannot create bundles",
+		})
+		return
+	}
 
 	var req models.CreateBundleRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -56,7 +70,7 @@ func (c *BundleController) CreateBundle(ctx *gin.Context) {
 	}
 
 	b := &bundle.Bundle{
-		ID:                 "bundle_" + supplierIDStr + "_" + time.Now().String(),
+		ID:                 "bundle_" + primitive.NewObjectID().Hex(),
 		SupplierID:         supplierIDStr,
 		Title:              req.Title,
 		Description:        req.Description,
@@ -69,6 +83,8 @@ func (c *BundleController) CreateBundle(ctx *gin.Context) {
 		Price:              req.Price,
 		Status:             "available",
 		CreatedAt:          time.Now().Format(time.RFC3339),
+		DeclaredRating:     req.DeclaredRating, // ✅ included here
+		RemainingItemCount: req.NumberOfItems,
 	}
 
 	if err := c.bundleUsecase.CreateBundle(ctx, supplierIDStr, b); err != nil {
