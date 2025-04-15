@@ -57,7 +57,7 @@ func (c *ConsumerController) GetOrderHistory(ctx *gin.Context) {
 	if status != "" {
 		filteredOrders := []*order.Order{}
 		for _, o := range orders {
-			if strings.ToLower(string(o.Status)) == strings.ToLower(status) {
+			if strings.EqualFold(string(o.Status), status) {
 				filteredOrders = append(filteredOrders, o)
 			}
 		}

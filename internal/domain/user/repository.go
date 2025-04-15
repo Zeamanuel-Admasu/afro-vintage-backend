@@ -10,4 +10,6 @@ type Repository interface {
 	UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error
 	DeleteUser(ctx context.Context, id string) error
 	FindUserByUsername(ctx context.Context, username string) (*User, error)
+	UpdateTrustData(ctx context.Context, user *User) error
+	GetBlacklistedUsers(ctx context.Context) ([]*User, error)
 }

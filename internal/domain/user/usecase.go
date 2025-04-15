@@ -8,4 +8,5 @@ type Usecase interface {
 	ListByRole(ctx context.Context, role Role) ([]*User, error)
 	Update(ctx context.Context, id string, updates map[string]interface{}) error
 	Delete(ctx context.Context, id string) error
+	GetBlacklistedUsers(ctx context.Context) ([]*User, error)
 }

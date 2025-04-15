@@ -33,3 +33,6 @@ func (uc *userUsecase) Update(ctx context.Context, id string, updates map[string
 func (uc *userUsecase) Delete(ctx context.Context, id string) error {
 	return uc.repo.DeleteUser(ctx, id)
 }
+func (u *userUsecase) GetBlacklistedUsers(ctx context.Context) ([]*user.User, error) {
+	return u.repo.GetBlacklistedUsers(ctx)
+}
