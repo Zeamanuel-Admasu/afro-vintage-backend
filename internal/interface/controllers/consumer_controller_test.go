@@ -52,6 +52,14 @@ func (m *MockOrderRepository) DeleteOrder(ctx context.Context, orderID string) e
 	return args.Error(0)
 }
 
+func (m *MockOrderRepository) GetOrdersBySupplier(ctx context.Context, supplierID string) ([]*order.Order, error) {
+	args := m.Called(ctx, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*order.Order), args.Error(1)
+}
+
 type ConsumerControllerTestSuite struct {
 	suite.Suite
 	mockRepo    *MockOrderRepository

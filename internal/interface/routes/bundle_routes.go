@@ -13,7 +13,7 @@ func RegisterBundleRoutes(r *gin.Engine, ctrl *controllers.BundleController, jwt
 
 	bundleGroup.POST("", middlewares.AuthorizeRoles("supplier"), ctrl.CreateBundle)
 	bundleGroup.GET("", middlewares.AuthorizeRoles("supplier"), ctrl.ListBundles)
-	bundleGroup.GET("/:id", middlewares.AuthorizeRoles("supplier"), ctrl.GetBundle) // Added
+	bundleGroup.GET("/:id", middlewares.AuthorizeRoles("supplier","reseller"), ctrl.GetBundle) // Added
 	bundleGroup.DELETE("/:id", middlewares.AuthorizeRoles("supplier"), ctrl.DeleteBundle)
 	bundleGroup.PUT("/:id", middlewares.AuthorizeRoles("supplier"), ctrl.UpdateBundle)
 	bundleGroup.GET("/available", middlewares.AuthorizeRoles("reseller"), ctrl.ListAvailableBundles)

@@ -167,3 +167,18 @@ func (uc *orderUseCaseImpl) GetDashboardMetrics(ctx context.Context, supplierID 
 func (uc *orderUseCaseImpl) GetOrderByID(ctx context.Context, orderID string) (*order.Order, error) {
 	return uc.orderRepo.GetOrderByID(ctx, orderID)
 }
+func (uc *orderUseCaseImpl) GetSoldBundleHistory(ctx context.Context, supplierID string) ([]*order.Order, error) {
+    orders, err := uc.orderRepo.GetOrdersBySupplier(ctx, supplierID)
+    if err != nil {
+        return nil, err
+    }
+
+    var soldBundleOrders []*order.Order
+    for _, order := range orders {
+        if order.BundleID != "" && len(order.ProductIDs) == 0 {
+            soldBundleOrders = append(soldBundleOrders, order)
+        }
+    }
+
+    return soldBundleOrders, nil
+}
