@@ -1,6 +1,10 @@
 package cartitem
 
-import "context"
+import (
+	"context"
+
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/models"
+)
 
 type Usecase interface {
 	// AddCartItem adds an item to the user's cart.
@@ -13,7 +17,6 @@ type Usecase interface {
 	// RemoveCartItem deletes a specific item from the user's cart.
 	RemoveCartItem(ctx context.Context, userID string, listingID string) error
 
-	// CheckoutCart processes a checkout by validating item availability,
-	// marking items as sold, creating an order, and then clearing the cart.
-	CheckoutCart(ctx context.Context, userID string) error
+	CheckoutCart(ctx context.Context, userID string) (*models.CheckoutResponse, error)
+	CheckoutSingleItem(ctx context.Context, userID, listingID string) (*models.CheckoutResponse, error)
 }
