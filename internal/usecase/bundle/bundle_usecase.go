@@ -26,7 +26,11 @@ func (u *bundleUsecase) CreateBundle(ctx context.Context, supplierID string, b *
 }
 
 func (u *bundleUsecase) ListBundles(ctx context.Context, supplierID string) ([]*bundle.Bundle, error) {
-	return u.bundleRepo.ListBundles(ctx, supplierID)
+	bundles, err := u.bundleRepo.ListBundles(ctx, supplierID)
+	if err != nil {
+		return nil, err
+	}
+	return bundles, nil
 }
 
 func (u *bundleUsecase) DeleteBundle(ctx context.Context, supplierID string, bundleID string) error {
