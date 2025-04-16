@@ -8,6 +8,7 @@ import (
 
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/cartitem"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/product"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/models"
 	"github.com/google/uuid"
 )
 
@@ -72,51 +73,129 @@ func (u *cartItemUsecase) RemoveCartItem(ctx context.Context, userID string, lis
 // It ensures that the product exists and that its status is "available".
 // If any product is not available, it returns a CheckoutValidationError containing details.
 // If all validations pass, it simulates a successful checkout by clearing the cart.
-func (u *cartItemUsecase) CheckoutCart(ctx context.Context, userID string) error {
-	// Retrieve all cart items for the user.
+
+// CheckoutCart processes a full cart checkout.
+func (u *cartItemUsecase) CheckoutCart(ctx context.Context, userID string) (*models.CheckoutResponse, error) {
+	// Retrieve all cart items.
 	items, err := u.repo.GetCartItems(ctx, userID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	if len(items) == 0 {
-		return errors.New("cart is empty")
+		return nil, errors.New("cart is empty")
 	}
 
-	var unavailableItems []cartitem.UnavailableItem
+	var total float64
+	var checkoutItems []models.CheckoutItemResponse
 
-	// Loop through each cart item and validate by fetching the corresponding product.
+	// Validate each item.
 	for _, item := range items {
-		// Treat product.ID as the listingId.
 		prod, err := u.productRepo.GetProductByID(ctx, item.ListingID)
 		if err != nil || prod == nil {
-			return fmt.Errorf("product with listing ID %s not found", item.ListingID)
+			return nil, fmt.Errorf("product with ListingID %s not found", item.ListingID)
 		}
-		// Ensure product.Status is "available" (add this field in your product struct if it does not exist).
 		if prod.Status != "available" {
-			unavailableItems = append(unavailableItems, cartitem.UnavailableItem{
-				ListingID: prod.ID,
-				Title:     item.Title,
-			})
+			return nil, fmt.Errorf("item %q is no longer available", prod.Title)
 		}
+
+		// Accumulate for checkout.
+		total += prod.Price
+		checkoutItems = append(checkoutItems, models.CheckoutItemResponse{
+			ListingID: prod.ID,
+			Title:     prod.Title,
+			Price:     prod.Price,
+			SellerID:  prod.ResellerID.Hex(), // or use string conversion as needed
+			Status:    prod.Status,
+		})
+		// Mark product as sold (simulate update; ideally via product repository with a transaction).
+		prod.Status = "sold"
+		// (Update product in DB here if needed)
 	}
 
-	// If any items are unavailable, return a validation error.
-	if len(unavailableItems) > 0 {
-		return &cartitem.CheckoutValidationError{
-			Message:          "Some items are no longer available",
-			UnavailableItems: unavailableItems,
-		}
-	}
+	// Calculate fees.
+	platformFee := total * 0.02
+	netPayable := total - platformFee
 
-	// Simulate a successful checkout process (e.g. order creation, marking as sold, etc.).
-	// For now, we simply clear the cart.
+	// Create PaymentRecord and Order here (simulate payment via Stripe).
+	// (This code would call another repository to save PaymentRecord)
+
+	// Clear the purchased items from the cart.
 	if err := u.repo.ClearCart(ctx, userID); err != nil {
-		return err
+		return nil, err
 	}
 
-	// At this point, checkout validation passed.
-	// The controller can provide a success message like:
-	// "Checkout validation passed. Proceed to payment!"
-	return nil
+	// Launch a goroutine to simulate order delivery update after 3 minutes.
+	go func() {
+		time.Sleep(3 * time.Minute)
+		// Update order status to "Delivered".
+		// (Call order repository or similar here)
+	}()
+
+	return &models.CheckoutResponse{
+		TotalAmount: total,
+		Items:       checkoutItems,
+		PlatformFee: platformFee,
+		NetPayable:  netPayable,
+	}, nil
+}
+
+// CheckoutSingleItem processes checkout for a single cart item.
+func (u *cartItemUsecase) CheckoutSingleItem(ctx context.Context, userID, listingID string) (*models.CheckoutResponse, error) {
+	// Fetch the specific cart item.
+	// (Option 1: Filter from GetCartItems; Option 2: Add a method to repo to get single item)
+	items, err := u.repo.GetCartItems(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	var targetItem *cartitem.CartItem
+	for _, i := range items {
+		if i.ListingID == listingID {
+			targetItem = i
+			break
+		}
+	}
+	if targetItem == nil {
+		return nil, errors.New("item not found in cart")
+	}
+
+	prod, err := u.productRepo.GetProductByID(ctx, listingID)
+	if err != nil || prod == nil {
+		return nil, fmt.Errorf("product with ListingID %s not found", listingID)
+	}
+	if prod.Status != "available" {
+		return nil, fmt.Errorf("item %q is no longer available", prod.Title)
+	}
+
+	total := prod.Price
+	platformFee := total * 0.02
+	netPayable := total - platformFee
+
+	checkoutItem := models.CheckoutItemResponse{
+		ListingID: prod.ID,
+		Title:     prod.Title,
+		Price:     prod.Price,
+		SellerID:  prod.ResellerID.Hex(),
+		Status:    prod.Status,
+	}
+
+	// Mark product as sold and update db if required.
+	prod.Status = "sold"
+
+	// Simulate payment record creation & update.
+	// Remove the single item from cart.
+	if err := u.repo.DeleteCartItem(ctx, userID, listingID); err != nil {
+		return nil, err
+	}
+
+	go func() {
+		time.Sleep(3 * time.Minute)
+		// Update order status to "Delivered".
+	}()
+
+	return &models.CheckoutResponse{
+		TotalAmount: total,
+		Items:       []models.CheckoutItemResponse{checkoutItem},
+		PlatformFee: platformFee,
+		NetPayable:  netPayable,
+	}, nil
 }
