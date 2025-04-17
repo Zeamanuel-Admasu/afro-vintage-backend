@@ -6,6 +6,7 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/payment"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
 )
 
@@ -20,4 +21,5 @@ type orderUseCaseImpl struct {
 	orderRepo     order.Repository
 	warehouseRepo warehouse.Repository
 	paymentRepo   payment.Repository
+	userRepo      user.Repository
 }

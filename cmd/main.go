@@ -57,7 +57,7 @@ func main() {
 	trustUC := trustusecase.NewTrustUsecase(productRepo, bundleRepo, userRepo)
 	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo, productRepo)
 	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo)                           // Add review usecase
-	orderSvc := orderusecase.NewOrderUsecase(bundleRepo, orderRepo, warehouseRepo, paymentRepo) // Add order service
+	orderSvc := orderusecase.NewOrderUsecase(bundleRepo, orderRepo, warehouseRepo, paymentRepo, userRepo) // Add order service with user repo
 	warehouseSvc := warehouse_usecase.NewWarehouseUseCase(warehouseRepo)
 
 	// Init Controllers
@@ -84,6 +84,7 @@ func main() {
 	routes.RegisterOrderRoutes(r, orderCtrl, consumerCtrl, jwtSvc) // Register order routes
 	routes.RegisterSupplierRoutes(r, supplierCtrl, jwtSvc)
 	routes.RegisterWarehouseRoutes(r, warehouseCtrl, jwtSvc)
+	routes.RegisterResellerRoutes(r, supplierCtrl, jwtSvc)
 
 	// Run server
 	r.Run(":8080")

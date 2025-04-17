@@ -11,7 +11,5 @@ func RegisterSupplierRoutes(r *gin.Engine, ctrl *controllers.SupplierController,
 	supplierGroup := r.Group("/supplier")
 	supplierGroup.Use(middlewares.AuthMiddleware(jwtSvc))
 
-	supplierGroup.GET("/dashboard", middlewares.AuthorizeRoles("supplier"), ctrl.GetDashboardMetrics)
-    supplierGroup.GET("/sold-history", ctrl.ListSoldBundles) 
-   
+	supplierGroup.GET("/dashboard", ctrl.GetDashboardMetrics)
 }

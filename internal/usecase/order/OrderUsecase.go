@@ -11,16 +11,19 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/payment"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func NewOrderUsecase(bRepo bundle.Repository, oRepo order.Repository, wRepo warehouse.Repository, pRepo payment.Repository) *orderUseCaseImpl {
+
+func NewOrderUsecase(bRepo bundle.Repository, oRepo order.Repository, wRepo warehouse.Repository, pRepo payment.Repository, uRepo user.Repository) *orderUseCaseImpl {
 	return &orderUseCaseImpl{
 		bundleRepo:    bRepo,
 		orderRepo:     oRepo,
 		warehouseRepo: wRepo,
 		paymentRepo:   pRepo,
+		userRepo:      uRepo,
 	}
 }
 
@@ -134,11 +137,22 @@ func (uc *orderUseCaseImpl) GetDashboardMetrics(ctx context.Context, supplierID 
 	activeCount := 0
 	soldCount := 0
 	var activeBundles []*bundle.Bundle
+	bestSelling := 0.0
+
+	// Get user trust score
+	userData, err := uc.userRepo.GetByID(ctx, supplierID)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, b := range bundles {
 		if b.Status == "purchased" {
 			totalSales += b.Price
 			soldCount++
+			// Track the highest selling bundle
+			if b.Price > bestSelling {
+				bestSelling = b.Price
+			}
 		} else if b.Status == "available" {
 			activeCount++
 			activeBundles = append(activeBundles, b)
@@ -159,6 +173,8 @@ func (uc *orderUseCaseImpl) GetDashboardMetrics(ctx context.Context, supplierID 
 		TotalSales:         totalSales,
 		ActiveBundles:      activeBundles,
 		PerformanceMetrics: performanceMetrice,
+		Rating:             userData.TrustScore,
+		BestSelling:        bestSelling,
 	}
 
 	return metrics, nil
@@ -181,4 +197,62 @@ func (uc *orderUseCaseImpl) GetSoldBundleHistory(ctx context.Context, supplierID
     }
 
     return soldBundleOrders, nil
+}
+
+func (uc *orderUseCaseImpl) GetResellerMetrics(ctx context.Context, resellerID string) (*order.ResellerMetrics, error) {
+	// Get bought bundles
+	bundles, err := uc.bundleRepo.ListPurchasedByReseller(ctx, resellerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get user trust score
+	userData, err := uc.userRepo.GetByID(ctx, resellerID)
+	if err != nil {
+		return nil, err
+	}
+
+	totalBoughtBundles := len(bundles)
+	bestSelling := 0.0
+
+	// Get all orders for this reseller to count actual sold items
+	orders, err := uc.orderRepo.GetOrdersByReseller(ctx, resellerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count actual sold items from orders
+	totalItemsSold := 0
+	for _, order := range orders {
+		if order.Status == "completed" {
+			// For product purchases, count the number of products
+			if len(order.ProductIDs) > 0 {
+				totalItemsSold += len(order.ProductIDs)
+			}
+			// For bundle purchases, get the bundle quantity
+			if order.BundleID != "" {
+				bundle, err := uc.bundleRepo.GetBundleByID(ctx, order.BundleID)
+				if err == nil && bundle != nil {
+					totalItemsSold += bundle.Quantity
+				}
+			}
+		}
+	}
+
+	// Calculate best selling from bundles
+	for _, b := range bundles {
+		if b.Price > bestSelling {
+			bestSelling = b.Price
+		}
+	}
+
+	metrics := &order.ResellerMetrics{
+		TotalBoughtBundles: totalBoughtBundles,
+		TotalItemsSold:     totalItemsSold,
+		Rating:             userData.TrustScore,
+		BestSelling:        bestSelling,
+		BoughtBundles:      bundles,
+	}
+
+	return metrics, nil
 }

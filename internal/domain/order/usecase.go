@@ -11,4 +11,5 @@ type Usecase interface {
     GetDashboardMetrics(ctx context.Context, supplierID string) (*DashboardMetrics, error)
     GetOrderByID(ctx context.Context, orderID string) (*Order, error)
     GetSoldBundleHistory(ctx context.Context, supplierID string) ([]*Order, error)
+    GetResellerMetrics(ctx context.Context, resellerID string) (*ResellerMetrics, error)
 }

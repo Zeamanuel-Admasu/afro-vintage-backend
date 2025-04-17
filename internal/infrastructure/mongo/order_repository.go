@@ -92,3 +92,26 @@ func (r *mongoOrderRepository) GetOrdersBySupplier(ctx context.Context, supplier
 
     return orders, nil
 }
+
+func (r *mongoOrderRepository) GetOrdersByReseller(ctx context.Context, resellerID string) ([]*order.Order, error) {
+    var orders []*order.Order
+    cursor, err := r.collection.Find(ctx, bson.M{"reseller_id": resellerID})
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(ctx)
+
+    for cursor.Next(ctx) {
+        var o order.Order
+        if err := cursor.Decode(&o); err != nil {
+            return nil, err
+        }
+        orders = append(orders, &o)
+    }
+
+    if err := cursor.Err(); err != nil {
+        return nil, err
+    }
+
+    return orders, nil
+}

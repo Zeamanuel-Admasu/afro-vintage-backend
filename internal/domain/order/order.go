@@ -38,4 +38,14 @@ type DashboardMetrics struct {
 	TotalSales         float64            `json:"totalSales"`
 	ActiveBundles      []*bundle.Bundle   `json:"activeBundles"`
 	PerformanceMetrics PerformanceMetrics `json:"performanceMetrics"`
+	Rating             int                `json:"rating"`
+	BestSelling        float64            `json:"bestSelling"`
+}
+
+type ResellerMetrics struct {
+	TotalBoughtBundles int               `json:"totalBoughtBundles"`
+	TotalItemsSold     int               `json:"totalItemsSold"`
+	Rating             int               `json:"rating"`
+	BestSelling        float64           `json:"bestSelling"`
+	BoughtBundles      []*bundle.Bundle  `json:"boughtBundles"`
 }

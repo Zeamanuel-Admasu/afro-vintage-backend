@@ -60,6 +60,14 @@ func (m *MockOrderRepository) GetOrdersBySupplier(ctx context.Context, supplierI
 	return args.Get(0).([]*order.Order), args.Error(1)
 }
 
+func (m *MockOrderRepository) GetOrdersByReseller(ctx context.Context, resellerID string) ([]*order.Order, error) {
+	args := m.Called(ctx, resellerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*order.Order), args.Error(1)
+}
+
 type ConsumerControllerTestSuite struct {
 	suite.Suite
 	mockRepo    *MockOrderRepository

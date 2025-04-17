@@ -10,6 +10,7 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/payment"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -124,6 +125,14 @@ func (m *MockOrderRepo) GetOrdersBySupplier(ctx context.Context, supplierID stri
 	return args.Get(0).([]*order.Order), args.Error(1)
 }
 
+func (m *MockOrderRepo) GetOrdersByReseller(ctx context.Context, resellerID string) ([]*order.Order, error) {
+	args := m.Called(ctx, resellerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*order.Order), args.Error(1)
+}
+
 type MockWarehouseRepo struct {
 	mock.Mock
 }
@@ -199,6 +208,70 @@ func (m *MockPaymentRepo) GetAllPlatformFees(ctx context.Context) (float64, erro
 	return args.Get(0).(float64), args.Error(1)
 }
 
+type MockUserRepo struct {
+	mock.Mock
+}
+
+func (m *MockUserRepo) GetByID(ctx context.Context, id string) (*user.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.User), args.Error(1)
+}
+
+func (m *MockUserRepo) CreateUser(ctx context.Context, u *user.User) error {
+	args := m.Called(ctx, u)
+	return args.Error(0)
+}
+
+func (m *MockUserRepo) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.User), args.Error(1)
+}
+
+func (m *MockUserRepo) ListUsersByRole(ctx context.Context, role user.Role) ([]*user.User, error) {
+	args := m.Called(ctx, role)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*user.User), args.Error(1)
+}
+
+func (m *MockUserRepo) UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error {
+	args := m.Called(ctx, id, updates)
+	return args.Error(0)
+}
+
+func (m *MockUserRepo) DeleteUser(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockUserRepo) FindUserByUsername(ctx context.Context, username string) (*user.User, error) {
+	args := m.Called(ctx, username)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.User), args.Error(1)
+}
+
+func (m *MockUserRepo) UpdateTrustData(ctx context.Context, user *user.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *MockUserRepo) GetBlacklistedUsers(ctx context.Context) ([]*user.User, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*user.User), args.Error(1)
+}
+
 // Test Cases
 func TestNewOrderUsecase(t *testing.T) {
 	// Arrange
@@ -206,9 +279,10 @@ func TestNewOrderUsecase(t *testing.T) {
 	mockOrderRepo := new(MockOrderRepo)
 	mockWarehouseRepo := new(MockWarehouseRepo)
 	mockPaymentRepo := new(MockPaymentRepo)
+	mockUserRepo := new(MockUserRepo)
 
 	// Act
-	useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo)
+	useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo, mockUserRepo)
 
 	// Assert
 	assert.NotNil(t, useCase)
@@ -269,7 +343,8 @@ func TestPurchaseBundle(t *testing.T) {
 			mockOrderRepo := new(MockOrderRepo)
 			mockWarehouseRepo := new(MockWarehouseRepo)
 			mockPaymentRepo := new(MockPaymentRepo)
-			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo)
+			mockUserRepo := new(MockUserRepo)
+			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo, mockUserRepo)
 			ctx := context.Background()
 
 			mockBundleRepo.On("GetBundleByID", ctx, tt.bundleID).Return(tt.mockBundle, tt.mockError)
@@ -314,10 +389,13 @@ func TestGetDashboardMetrics(t *testing.T) {
 		name           string
 		supplierID     string
 		mockBundles    []*bundle.Bundle
+		mockUser       *user.User
 		mockError      error
 		expectError    bool
 		expectedSales  float64
 		expectedCounts order.PerformanceMetrics
+		expectedRating int
+		expectedBest   float64
 	}{
 		{
 			name:       "Success - With bundles",
@@ -336,6 +414,10 @@ func TestGetDashboardMetrics(t *testing.T) {
 					DateListed: time.Now(),
 				},
 			},
+			mockUser: &user.User{
+				ID:         "supplier1",
+				TrustScore: 85,
+			},
 			mockError:     nil,
 			expectError:   false,
 			expectedSales: 100.0,
@@ -344,11 +426,17 @@ func TestGetDashboardMetrics(t *testing.T) {
 				ActiveCount:        1,
 				SoldCount:          1,
 			},
+			expectedRating: 85,
+			expectedBest:   100.0,
 		},
 		{
 			name:           "Success - No bundles",
 			supplierID:     "supplier2",
 			mockBundles:    []*bundle.Bundle{},
+			mockUser: &user.User{
+				ID:         "supplier2",
+				TrustScore: 90,
+			},
 			mockError:      nil,
 			expectError:    false,
 			expectedSales:  0.0,
@@ -357,15 +445,20 @@ func TestGetDashboardMetrics(t *testing.T) {
 				ActiveCount:        0,
 				SoldCount:          0,
 			},
+			expectedRating: 90,
+			expectedBest:   0.0,
 		},
 		{
 			name:           "Error - Repository error",
 			supplierID:     "supplier3",
 			mockBundles:    nil,
+			mockUser:       nil,
 			mockError:      errors.New("database error"),
 			expectError:    true,
 			expectedSales:  0.0,
 			expectedCounts: order.PerformanceMetrics{},
+			expectedRating: 0,
+			expectedBest:   0.0,
 		},
 	}
 
@@ -376,10 +469,14 @@ func TestGetDashboardMetrics(t *testing.T) {
 			mockOrderRepo := new(MockOrderRepo)
 			mockWarehouseRepo := new(MockWarehouseRepo)
 			mockPaymentRepo := new(MockPaymentRepo)
-			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo)
+			mockUserRepo := new(MockUserRepo)
+			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo, mockUserRepo)
 			ctx := context.Background()
 
 			mockBundleRepo.On("ListBundles", ctx, tt.supplierID).Return(tt.mockBundles, tt.mockError)
+			if tt.mockUser != nil {
+				mockUserRepo.On("GetByID", ctx, tt.supplierID).Return(tt.mockUser, nil)
+			}
 
 			// Act
 			metrics, err := useCase.GetDashboardMetrics(ctx, tt.supplierID)
@@ -393,8 +490,11 @@ func TestGetDashboardMetrics(t *testing.T) {
 				assert.NotNil(t, metrics)
 				assert.Equal(t, tt.expectedSales, metrics.TotalSales)
 				assert.Equal(t, tt.expectedCounts, metrics.PerformanceMetrics)
+				assert.Equal(t, tt.expectedRating, metrics.Rating)
+				assert.Equal(t, tt.expectedBest, metrics.BestSelling)
 			}
 			mockBundleRepo.AssertExpectations(t)
+			mockUserRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -434,7 +534,8 @@ func TestGetOrderByID(t *testing.T) {
 			mockOrderRepo := new(MockOrderRepo)
 			mockWarehouseRepo := new(MockWarehouseRepo)
 			mockPaymentRepo := new(MockPaymentRepo)
-			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo)
+			mockUserRepo := new(MockUserRepo)
+			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo, mockUserRepo)
 			ctx := context.Background()
 
 			mockOrderRepo.On("GetOrderByID", ctx, tt.orderID).Return(tt.mockOrder, tt.mockError)
@@ -509,7 +610,8 @@ func TestGetSoldBundleHistory(t *testing.T) {
 			mockOrderRepo := new(MockOrderRepo)
 			mockWarehouseRepo := new(MockWarehouseRepo)
 			mockPaymentRepo := new(MockPaymentRepo)
-			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo)
+			mockUserRepo := new(MockUserRepo)
+			useCase := NewOrderUsecase(mockBundleRepo, mockOrderRepo, mockWarehouseRepo, mockPaymentRepo, mockUserRepo)
 			ctx := context.Background()
 
 			mockOrderRepo.On("GetOrdersBySupplier", ctx, tt.supplierID).Return(tt.mockOrders, tt.mockError)

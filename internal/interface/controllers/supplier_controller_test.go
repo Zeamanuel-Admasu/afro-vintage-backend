@@ -36,6 +36,14 @@ func (m *MockOrderUsecase) GetDashboardMetrics(ctx context.Context, supplierID s
 	return args.Get(0).(*order.DashboardMetrics), args.Error(1)
 }
 
+func (m *MockOrderUsecase) GetResellerMetrics(ctx context.Context, resellerID string) (*order.ResellerMetrics, error) {
+	args := m.Called(ctx, resellerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*order.ResellerMetrics), args.Error(1)
+}
+
 func (m *MockOrderUsecase) GetOrderByID(ctx context.Context, orderID string) (*order.Order, error) {
 	args := m.Called(ctx, orderID)
 	if args.Get(0) == nil {
@@ -154,89 +162,7 @@ func (suite *SupplierControllerTestSuite) TestGetDashboardMetrics_UseCaseError()
 	suite.usecase.AssertExpectations(suite.T())
 }
 
-func (suite *SupplierControllerTestSuite) TestListSoldBundles_Success() {
-	// Setup
-	expectedOrders := []*order.Order{
-		{
-			ID:         "order1",
-			ResellerID: "reseller1",
-			SupplierID: "supplier123",
-			BundleID:   "bundle1",
-			Status:     order.OrderStatusCompleted,
-		},
-		{
-			ID:         "order2",
-			ResellerID: "reseller2",
-			SupplierID: "supplier123",
-			BundleID:   "bundle2",
-			Status:     order.OrderStatusCompleted,
-		},
-	}
 
-	suite.usecase.On("GetSoldBundleHistory", mock.Anything, "supplier123").
-		Return(expectedOrders, nil)
 
-	// Create test request
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("userID", "supplier123")
-	c.Request = httptest.NewRequest("GET", "/supplier/bundles", nil)
 
-	// Execute
-	suite.controller.ListSoldBundles(c)
 
-	// Assert
-	assert.Equal(suite.T(), http.StatusOK, w.Code)
-	suite.usecase.AssertExpectations(suite.T())
-}
-
-func (suite *SupplierControllerTestSuite) TestListSoldBundles_Unauthorized() {
-	// Setup
-	// Create test request
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	// Note: No userID set
-	c.Request = httptest.NewRequest("GET", "/supplier/bundles", nil)
-
-	// Execute
-	suite.controller.ListSoldBundles(c)
-
-	// Assert
-	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
-	suite.usecase.AssertNotCalled(suite.T(), "GetSoldBundleHistory")
-}
-
-func (suite *SupplierControllerTestSuite) TestListSoldBundles_InvalidUserID() {
-	// Setup
-	// Create test request
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("userID", 123) // Invalid type
-	c.Request = httptest.NewRequest("GET", "/supplier/bundles", nil)
-
-	// Execute
-	suite.controller.ListSoldBundles(c)
-
-	// Assert
-	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
-	suite.usecase.AssertNotCalled(suite.T(), "GetSoldBundleHistory")
-}
-
-func (suite *SupplierControllerTestSuite) TestListSoldBundles_UseCaseError() {
-	// Setup
-	suite.usecase.On("GetSoldBundleHistory", mock.Anything, "supplier123").
-		Return(nil, assert.AnError)
-
-	// Create test request
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("userID", "supplier123")
-	c.Request = httptest.NewRequest("GET", "/supplier/bundles", nil)
-
-	// Execute
-	suite.controller.ListSoldBundles(c)
-
-	// Assert
-	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
-	suite.usecase.AssertExpectations(suite.T())
-}

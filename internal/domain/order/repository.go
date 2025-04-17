@@ -10,5 +10,6 @@ type Repository interface {
     GetOrderByID(ctx context.Context, orderID string) (*Order, error)
     UpdateOrderStatus(ctx context.Context, orderID string, status OrderStatus) error
     DeleteOrder(ctx context.Context, orderID string) error
-    GetOrdersBySupplier(ctx context.Context, supplierID string) ([]*Order, error) // Added
+    GetOrdersBySupplier(ctx context.Context, supplierID string) ([]*Order, error)
+    GetOrdersByReseller(ctx context.Context, resellerID string) ([]*Order, error)
 }

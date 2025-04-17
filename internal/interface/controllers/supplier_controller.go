@@ -42,29 +42,29 @@ func (c *SupplierController) GetDashboardMetrics(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, metrics)
 }
 
-func (c *SupplierController) ListSoldBundles(ctx *gin.Context) {
-    supplierID, exists := ctx.Get("userID")
-    if !exists {
-        ctx.JSON(http.StatusUnauthorized, common.APIResponse{
-            Success: false,
-            Message: "Unauthorized",
-        })
-        return
-    }
+func (c *SupplierController) GetResellerMetrics(ctx *gin.Context) {
+	resellerID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, common.APIResponse{
+			Success: false,
+			Message: "Unauthorized",
+		})
+		return
+	}
 
-    supplierIDStr, ok := supplierID.(string)
-    if !ok || supplierIDStr == "" {
-        ctx.JSON(http.StatusUnauthorized, common.APIResponse{
-            Success: false,
-            Message: "invalid or empty user ID in context",
-        })
-        return
-    }
+	resellerIDStr, ok := resellerID.(string)
+	if !ok || resellerIDStr == "" {
+		ctx.JSON(http.StatusUnauthorized, common.APIResponse{
+			Success: false,
+			Message: "invalid or empty user ID in context",
+		})
+		return
+	}
 
-    soldBundles, err := c.orderUseCase.GetSoldBundleHistory(ctx, supplierIDStr)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-    ctx.JSON(http.StatusOK, soldBundles)
+	metrics, err := c.orderUseCase.GetResellerMetrics(ctx, resellerIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, metrics)
 }

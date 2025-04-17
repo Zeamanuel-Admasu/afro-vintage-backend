@@ -53,6 +53,14 @@ func (m *MockOrderUseCase) GetDashboardMetrics(ctx context.Context, supplierID s
 	return args.Get(0).(*order.DashboardMetrics), args.Error(1)
 }
 
+func (m *MockOrderUseCase) GetResellerMetrics(ctx context.Context, resellerID string) (*order.ResellerMetrics, error) {
+	args := m.Called(ctx, resellerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*order.ResellerMetrics), args.Error(1)
+}
+
 func (m *MockOrderUseCase) GetSoldBundleHistory(ctx context.Context, supplierID string) ([]*order.Order, error) {
 	args := m.Called(ctx, supplierID)
 	if args.Get(0) == nil {
