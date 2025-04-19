@@ -22,3 +22,26 @@ type BundleResponse struct {
 	Type   string  `json:"type"`
 	Status string  `json:"status"`
 }
+
+type BundleDetailResponse struct {
+	Bundle struct {
+		ID                 string         `json:"id"`
+		Title             string         `json:"title"`
+		Description       string         `json:"description"`
+		SampleImage       string         `json:"sample_image"`
+		Quantity          int            `json:"quantity"`
+		Grade             string         `json:"grade"`
+		SortingLevel      string         `json:"sorting_level"`
+		EstimatedBreakdown map[string]int `json:"estimated_breakdown"`
+		Type              string         `json:"type"`
+		Price             float64        `json:"price"`
+		Status            string         `json:"status"`
+		DeclaredRating    int            `json:"declared_rating"`
+		RemainingItemCount int           `json:"remaining_item_count"`
+	} `json:"bundle"`
+	Supplier struct {
+		ID     string  `json:"id"`
+		Name   string  `json:"name"`
+		Rating float64 `json:"rating"`
+	} `json:"supplier"`
+}

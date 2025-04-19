@@ -382,3 +382,95 @@ func (c *BundleController) ListAvailableBundles(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, bundles)
 }
+
+func (c *BundleController) GetBundleDetail(ctx *gin.Context) {
+	// Check authentication
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, common.APIResponse{
+			Success: false,
+			Message: "user ID not found in context",
+		})
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		ctx.JSON(http.StatusUnauthorized, common.APIResponse{
+			Success: false,
+			Message: "invalid or empty user ID in context",
+		})
+		return
+	}
+
+	// Validate role
+	role, exists := ctx.Get("role")
+	if !exists || (role != "supplier" && role != "reseller") {
+		ctx.JSON(http.StatusForbidden, common.APIResponse{
+			Success: false,
+			Message: "only suppliers and resellers can view bundle details",
+		})
+		return
+	}
+
+	id := ctx.Param("id")
+	if id == "" {
+		ctx.JSON(http.StatusBadRequest, common.APIResponse{
+			Success: false,
+			Message: "bundle ID is required",
+		})
+		return
+	}
+
+	// Get bundle details
+	bundle, err := c.bundleUsecase.GetBundlePublicByID(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, common.APIResponse{
+			Success: false,
+			Message: "bundle not found",
+		})
+		return
+	}
+
+	// Get supplier details
+	supplier, err := c.userUsecase.GetByID(ctx, bundle.SupplierID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.APIResponse{
+			Success: false,
+			Message: "error fetching supplier details",
+		})
+		return
+	}
+
+	// Calculate supplier rating from trust score
+	supplierRating := float64(supplier.TrustScore) / 100.0
+
+	// Construct response
+	response := models.BundleDetailResponse{}
+	
+	// Fill bundle details
+	response.Bundle.ID = bundle.ID
+	response.Bundle.Title = bundle.Title
+	response.Bundle.Description = bundle.Description
+	response.Bundle.SampleImage = bundle.SampleImage
+	response.Bundle.Quantity = bundle.Quantity
+	response.Bundle.Grade = bundle.Grade
+	response.Bundle.SortingLevel = string(bundle.SortingLevel)
+	response.Bundle.EstimatedBreakdown = bundle.EstimatedBreakdown
+	response.Bundle.Type = bundle.Type
+	response.Bundle.Price = bundle.Price
+	response.Bundle.Status = bundle.Status
+	response.Bundle.DeclaredRating = bundle.DeclaredRating
+	response.Bundle.RemainingItemCount = bundle.RemainingItemCount
+
+	// Fill supplier details
+	response.Supplier.ID = supplier.ID
+	response.Supplier.Name = supplier.Name
+	response.Supplier.Rating = supplierRating
+
+	ctx.JSON(http.StatusOK, common.APIResponse{
+		Success: true,
+		Message: "bundle detail fetched",
+		Data:    response,
+	})
+}
