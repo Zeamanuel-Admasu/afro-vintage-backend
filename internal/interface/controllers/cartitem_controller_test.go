@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -36,9 +37,22 @@ func (m *MockCartItemUsecase) RemoveCartItem(ctx context.Context, userID, listin
 	return args.Error(0)
 }
 
-func (m *MockCartItemUsecase) CheckoutCart(ctx context.Context, userID string) error {
+// Change signature to return *models.CheckoutResponse instead of interface{}
+func (m *MockCartItemUsecase) CheckoutCart(ctx context.Context, userID string) (*models.CheckoutResponse, error) {
 	args := m.Called(ctx, userID)
-	return args.Error(0)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CheckoutResponse), args.Error(1)
+}
+
+// Change signature to return *models.CheckoutResponse instead of interface{}
+func (m *MockCartItemUsecase) CheckoutSingleItem(ctx context.Context, userID, listingID string) (*models.CheckoutResponse, error) {
+	args := m.Called(ctx, userID, listingID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CheckoutResponse), args.Error(1)
 }
 
 type CartItemControllerTestSuite struct {
@@ -56,7 +70,7 @@ func (suite *CartItemControllerTestSuite) SetupTest() {
 	suite.router = gin.Default()
 	suite.userID = "user123"
 
-	// Add auth middleware
+	// Add a simple auth middleware that sets userID in the context.
 	suite.router.Use(func(c *gin.Context) {
 		c.Set("userID", suite.userID)
 	})
@@ -67,7 +81,6 @@ func (suite *CartItemControllerTestSuite) TestAddCartItem_Success() {
 	req := models.CreateCartItemRequest{
 		ListingID: "listing123",
 	}
-
 	suite.mockUC.On("AddCartItem", mock.Anything, suite.userID, req.ListingID).Return(nil)
 
 	// Execute
@@ -97,7 +110,7 @@ func (suite *CartItemControllerTestSuite) TestAddCartItem_Unauthorized() {
 	w := httptest.NewRecorder()
 	httpReq, _ := http.NewRequest("POST", "/api/cart", bytes.NewBuffer(jsonData))
 	httpReq.Header.Set("Content-Type", "application/json")
-	// Remove auth middleware for this test
+	// Create new router without auth middleware.
 	router := gin.Default()
 	router.POST("/api/cart", suite.controller.AddCartItem)
 	router.ServeHTTP(w, httpReq)
@@ -123,6 +136,7 @@ func (suite *CartItemControllerTestSuite) TestAddCartItem_InvalidRequest() {
 
 func (suite *CartItemControllerTestSuite) TestGetCartItems_Success() {
 	// Setup
+	now := time.Now()
 	items := []*cartitem.CartItem{
 		{
 			ID:        "item1",
@@ -131,10 +145,9 @@ func (suite *CartItemControllerTestSuite) TestGetCartItems_Success() {
 			Price:     100.0,
 			ImageURL:  "image1.jpg",
 			Grade:     "A",
-			CreatedAt: time.Now(),
+			CreatedAt: now,
 		},
 	}
-
 	suite.mockUC.On("GetCartItems", mock.Anything, suite.userID).Return(items, nil)
 
 	// Execute
@@ -156,7 +169,7 @@ func (suite *CartItemControllerTestSuite) TestGetCartItems_Unauthorized() {
 	// Execute
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/cart", nil)
-	// Remove auth middleware for this test
+	// Create new router without auth middleware.
 	router := gin.Default()
 	router.GET("/api/cart", suite.controller.GetCartItems)
 	router.ServeHTTP(w, req)
@@ -191,7 +204,7 @@ func (suite *CartItemControllerTestSuite) TestRemoveCartItem_Unauthorized() {
 	// Execute
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("DELETE", "/api/cart/items/"+listingID, nil)
-	// Remove auth middleware for this test
+	// Create new router without auth middleware.
 	router := gin.Default()
 	router.DELETE("/api/cart/items/:listingID", suite.controller.RemoveCartItem)
 	router.ServeHTTP(w, req)
@@ -202,7 +215,21 @@ func (suite *CartItemControllerTestSuite) TestRemoveCartItem_Unauthorized() {
 
 func (suite *CartItemControllerTestSuite) TestCheckoutCart_Success() {
 	// Setup
-	suite.mockUC.On("CheckoutCart", mock.Anything, suite.userID).Return(nil)
+	dummyResp := &models.CheckoutResponse{
+		TotalAmount: 100.0,
+		PlatformFee: 2.0,
+		NetPayable:  98.0,
+		Items: []models.CheckoutItemResponse{
+			{
+				ListingID: "item1",
+				Title:     "Test Item 1",
+				Price:     100.0,
+				SellerID:  "seller1",
+				Status:    "available",
+			},
+		},
+	}
+	suite.mockUC.On("CheckoutCart", mock.Anything, suite.userID).Return(dummyResp, nil)
 
 	// Execute
 	w := httptest.NewRecorder()
@@ -214,20 +241,20 @@ func (suite *CartItemControllerTestSuite) TestCheckoutCart_Success() {
 	assert.Equal(suite.T(), http.StatusOK, w.Code)
 	var response map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &response)
-	assert.True(suite.T(), response["success"].(bool))
+	assert.Equal(suite.T(), true, response["success"])
+	assert.Equal(suite.T(), "Payment successful. Order confirmed.", response["message"])
+
+	// Verify that data matches dummyResp
+	data := response["data"].(map[string]interface{})
+	assert.Equal(suite.T(), dummyResp.TotalAmount, data["totalAmount"])
+	assert.Equal(suite.T(), dummyResp.PlatformFee, data["platformFee"])
+	assert.Equal(suite.T(), dummyResp.NetPayable, data["netPayable"])
 	suite.mockUC.AssertExpectations(suite.T())
 }
 
 func (suite *CartItemControllerTestSuite) TestCheckoutCart_ValidationError() {
 	// Setup
-	validationError := &cartitem.CheckoutValidationError{
-		Message: "Some items are unavailable",
-		UnavailableItems: []cartitem.UnavailableItem{
-			{ListingID: "item1", Title: "Test Item 1"},
-			{ListingID: "item2", Title: "Test Item 2"},
-		},
-	}
-	suite.mockUC.On("CheckoutCart", mock.Anything, suite.userID).Return(validationError)
+	suite.mockUC.On("CheckoutCart", mock.Anything, suite.userID).Return(nil, errors.New("some items are unavailable"))
 
 	// Execute
 	w := httptest.NewRecorder()
@@ -239,20 +266,7 @@ func (suite *CartItemControllerTestSuite) TestCheckoutCart_ValidationError() {
 	assert.Equal(suite.T(), http.StatusBadRequest, w.Code)
 	var response map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &response)
-	assert.False(suite.T(), response["success"].(bool))
-	assert.Equal(suite.T(), validationError.Message, response["message"])
-
-	// Convert unavailableItems to the expected type
-	unavailableItems := response["unavailableItems"].([]interface{})
-	var actualUnavailableItems []cartitem.UnavailableItem
-	for _, item := range unavailableItems {
-		itemMap := item.(map[string]interface{})
-		actualUnavailableItems = append(actualUnavailableItems, cartitem.UnavailableItem{
-			ListingID: itemMap["listingId"].(string),
-			Title:     itemMap["title"].(string),
-		})
-	}
-	assert.Equal(suite.T(), validationError.UnavailableItems, actualUnavailableItems)
+	assert.Equal(suite.T(), "some items are unavailable", response["error"])
 	suite.mockUC.AssertExpectations(suite.T())
 }
 
@@ -260,9 +274,63 @@ func (suite *CartItemControllerTestSuite) TestCheckoutCart_Unauthorized() {
 	// Execute
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/api/checkout", nil)
-	// Remove auth middleware for this test
+	// Create new router without auth middleware.
 	router := gin.Default()
 	router.POST("/api/checkout", suite.controller.CheckoutCart)
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
+}
+
+func (suite *CartItemControllerTestSuite) TestCheckoutSingleItem_Success() {
+	// Setup
+	dummyResp := &models.CheckoutResponse{
+		TotalAmount: 100.0,
+		PlatformFee: 2.0,
+		NetPayable:  98.0,
+		Items: []models.CheckoutItemResponse{
+			{
+				ListingID: "item1",
+				Title:     "Test Item 1",
+				Price:     100.0,
+				SellerID:  "seller1",
+				Status:    "available",
+			},
+		},
+	}
+	listingID := "listing123"
+	suite.mockUC.On("CheckoutSingleItem", mock.Anything, suite.userID, listingID).Return(dummyResp, nil)
+
+	// Execute
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/checkout/"+listingID, nil)
+	suite.router.POST("/api/checkout/:listingId", suite.controller.CheckoutSingleItem)
+	suite.router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+	assert.Equal(suite.T(), true, response["success"])
+	assert.Equal(suite.T(), "Payment successful. Order confirmed.", response["message"])
+
+	// Verify that data matches dummyResp
+	data := response["data"].(map[string]interface{})
+	assert.Equal(suite.T(), dummyResp.TotalAmount, data["totalAmount"])
+	assert.Equal(suite.T(), dummyResp.PlatformFee, data["platformFee"])
+	assert.Equal(suite.T(), dummyResp.NetPayable, data["netPayable"])
+	suite.mockUC.AssertExpectations(suite.T())
+}
+
+func (suite *CartItemControllerTestSuite) TestCheckoutSingleItem_Unauthorized() {
+	// Setup
+	listingID := "listing123"
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/checkout/"+listingID, nil)
+	// Create new router without auth middleware.
+	router := gin.Default()
+	router.POST("/api/checkout/:listingId", suite.controller.CheckoutSingleItem)
 	router.ServeHTTP(w, req)
 
 	// Assert

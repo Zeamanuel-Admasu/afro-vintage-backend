@@ -97,35 +97,6 @@ func (ctr *CartItemController) RemoveCartItem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "item removed from cart"})
 }
 
-// CheckoutCart handles POST /api/checkout
-// func (ctr *CartItemController) CheckoutCart(c *gin.Context) {
-// 	userID := c.GetString("userID")
-// 	if userID == "" {
-// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-// 		return
-// 	}
-
-// 	err := ctr.usecase.CheckoutCart(c.Request.Context(), userID)
-// 	if err != nil {
-// 		// If the error is a CheckoutValidationError, include unavailable items in the response.
-// 		if ve, ok := err.(*cartitem.CheckoutValidationError); ok {
-// 			c.JSON(http.StatusBadRequest, gin.H{
-// 				"success":          false,
-// 				"message":          ve.Message,
-// 				"unavailableItems": ve.UnavailableItems,
-// 			})
-// 		} else {
-// 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		}
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{
-// 		"success": true,
-// 		"message": "Checkout validation passed. Proceed to payment!",
-// 	})
-// }
-
 // Add this new method for single item checkout.
 func (ctr *CartItemController) CheckoutSingleItem(c *gin.Context) {
 	userID := c.GetString("userID")
