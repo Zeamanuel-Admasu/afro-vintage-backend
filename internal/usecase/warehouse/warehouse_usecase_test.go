@@ -56,6 +56,10 @@ func (m *MockRepository) HasResellerReceivedBundle(ctx context.Context, reseller
 	args := m.Called(ctx, resellerID, bundleID)
 	return args.Bool(0), args.Error(1)
 }
+func (m *MockRepository) CountByStatus(ctx context.Context, status string) (int, error) {
+	args := m.Called(ctx, status)
+	return args.Int(0), args.Error(1)
+}
 
 func TestNewWarehouseUseCase(t *testing.T) {
 	// Arrange
@@ -131,4 +135,4 @@ func TestGetWarehouseItems(t *testing.T) {
 			mockRepo.AssertExpectations(t)
 		})
 	}
-} 
+}

@@ -140,3 +140,7 @@ func (suite *ProductUsecaseTestSuite) SetupTest() {
 func TestProductUsecaseTestSuite(t *testing.T) {
 	suite.Run(t, new(ProductUsecaseTestSuite))
 }
+func (m *MockBundleRepository) CountBundles(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}

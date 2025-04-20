@@ -75,3 +75,8 @@ func (r *mongoRepository) HasResellerReceivedBundle(ctx context.Context, reselle
 	}
 	return count > 0, nil
 }
+func (r *mongoRepository) CountByStatus(ctx context.Context, status string) (int, error) {
+	filter := bson.M{"status": status}
+	count, err := r.collection.CountDocuments(ctx, filter)
+	return int(count), err
+}

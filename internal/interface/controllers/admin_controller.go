@@ -3,16 +3,18 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
 	"github.com/gin-gonic/gin"
 )
 
 type AdminController struct {
-	userUC user.Usecase
+	userUC  user.Usecase
+	orderUC order.Usecase
 }
 
-func NewAdminController(userUC user.Usecase) *AdminController {
-	return &AdminController{userUC: userUC}
+func NewAdminController(userUC user.Usecase, orderUC order.Usecase) *AdminController {
+	return &AdminController{userUC: userUC, orderUC: orderUC}
 }
 
 // GET /api/admin/users
@@ -126,4 +128,21 @@ func (a *AdminController) GetBlacklistedUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
+}
+func (a *AdminController) GetDashboardMetrics(c *gin.Context) {
+	metrics, err := a.orderUC.GetAdminDashboardMetrics(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Failed to fetch dashboard metrics",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Dashboard metrics retrieved successfully",
+		"data":    metrics,
+	})
 }

@@ -63,31 +63,36 @@ func (repo *mongoPaymentRepository) GetPaymentsByType(ctx context.Context, userI
 	}
 	return payments, nil
 }
-
-func (repo *mongoPaymentRepository) GetAllPlatformFees(ctx context.Context) (float64, error) {
+func (repo *mongoPaymentRepository) GetAllPlatformFees(ctx context.Context) (float64, float64, error) {
 	pipeline := mongo.Pipeline{
 		bson.D{
-			primitive.E{Key: "$group", Value: bson.M{
-				"_id":       nil,
-				"totalFees": bson.M{"$sum": "$platformfee"},
+			{Key: "$match", Value: bson.D{
+				{Key: "status", Value: "paid"},
+			}},
+		},
+		bson.D{
+			{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: nil},
+				{Key: "totalSales", Value: bson.D{{Key: "$sum", Value: "$amount"}}},
+				{Key: "platformFees", Value: bson.D{{Key: "$sum", Value: "$platformfee"}}},
 			}},
 		},
 	}
 
 	cursor, err := repo.collection.Aggregate(ctx, pipeline)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer cursor.Close(ctx)
 
-	var result []bson.M
-	if err = cursor.All(ctx, &result); err != nil {
-		return 0, err
+	var result []struct {
+		TotalSales   float64 `bson:"totalSales"`
+		PlatformFees float64 `bson:"platformFees"`
 	}
-	if len(result) > 0 {
-		if total, ok := result[0]["totalFees"].(float64); ok {
-			return total, nil
-		}
+
+	if err := cursor.All(ctx, &result); err != nil || len(result) == 0 {
+		return 0, 0, err
 	}
-	return 0, nil
+
+	return result[0].TotalSales, result[0].PlatformFees, nil
 }

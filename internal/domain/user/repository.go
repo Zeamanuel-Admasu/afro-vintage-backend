@@ -12,4 +12,5 @@ type Repository interface {
 	FindUserByUsername(ctx context.Context, username string) (*User, error)
 	UpdateTrustData(ctx context.Context, user *User) error
 	GetBlacklistedUsers(ctx context.Context) ([]*User, error)
+	CountActiveUsers(ctx context.Context) (int, error)
 }

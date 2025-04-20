@@ -140,3 +140,8 @@ func (r *mongoUserRepository) GetBlacklistedUsers(ctx context.Context) ([]*user.
 
 	return users, nil
 }
+func (r *mongoUserRepository) CountActiveUsers(ctx context.Context) (int, error) {
+	filter := bson.M{"is_deleted": false}
+	count, err := r.collection.CountDocuments(ctx, filter)
+	return int(count), err
+}

@@ -16,6 +16,7 @@ func RegisterAdminRoutes(r *gin.Engine, ctrl *controllers.AdminController, jwtSv
 	adminGroup.DELETE("/users/:userId", ctrl.DeleteUserIfBlacklisted)
 	adminGroup.GET("/users/trust-scores", ctrl.GetTrustScores)
 	adminGroup.GET("/blacklisted-users", ctrl.GetBlacklistedUsers)
+	adminGroup.GET("/dashboard", ctrl.GetDashboardMetrics)
 
 	// More admin routes can be added here (e.g. transactions, reviews, dashboards, etc.)
 	// adminGroup.GET("/dashboard", ctrl.GetDashboardMetrics)

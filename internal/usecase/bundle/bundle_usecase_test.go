@@ -69,6 +69,10 @@ func (m *MockRepository) DeleteBundle(ctx context.Context, bundleID string) erro
 	args := m.Called(ctx, bundleID)
 	return args.Error(0)
 }
+func (m *MockRepository) CountBundles(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}
 
 func (m *MockRepository) UpdateBundle(ctx context.Context, id string, updatedData map[string]interface{}) error {
 	args := m.Called(ctx, id, updatedData)
@@ -138,9 +142,9 @@ func (suite *BundleUsecaseTestSuite) TestCreateBundle() {
 			expectError: false,
 		},
 		{
-			name:       "Supplier ID mismatch",
-			supplierID: "supplier-1",
-			bundle:     createTestBundle("supplier-2"),
+			name:        "Supplier ID mismatch",
+			supplierID:  "supplier-1",
+			bundle:      createTestBundle("supplier-2"),
 			setupMock:   func() {},
 			expectError: true,
 		},
@@ -536,4 +540,4 @@ func (suite *BundleUsecaseTestSuite) TestGetBundlePublicByID() {
 // Run the test suite
 func TestBundleUsecaseTestSuite(t *testing.T) {
 	suite.Run(t, new(BundleUsecaseTestSuite))
-} 
+}
