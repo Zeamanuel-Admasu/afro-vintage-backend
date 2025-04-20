@@ -69,11 +69,6 @@ func (u *cartItemUsecase) RemoveCartItem(ctx context.Context, userID string, lis
 	return u.repo.DeleteCartItem(ctx, userID, listingID)
 }
 
-// CheckoutCart validates all items in the cart by fetching each associated product.
-// It ensures that the product exists and that its status is "available".
-// If any product is not available, it returns a CheckoutValidationError containing details.
-// If all validations pass, it simulates a successful checkout by clearing the cart.
-
 // CheckoutCart processes a full cart checkout.
 func (u *cartItemUsecase) CheckoutCart(ctx context.Context, userID string) (*models.CheckoutResponse, error) {
 	// Retrieve all cart items.
@@ -104,7 +99,7 @@ func (u *cartItemUsecase) CheckoutCart(ctx context.Context, userID string) (*mod
 			ListingID: prod.ID,
 			Title:     prod.Title,
 			Price:     prod.Price,
-			SellerID:  prod.ResellerID.Hex(), // or use string conversion as needed
+			SellerID:  prod.ResellerID.Hex(),
 			Status:    prod.Status,
 		})
 		// Mark product as sold (simulate update; ideally via product repository with a transaction).

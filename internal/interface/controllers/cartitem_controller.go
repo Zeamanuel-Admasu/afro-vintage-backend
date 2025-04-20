@@ -97,32 +97,7 @@ func (ctr *CartItemController) RemoveCartItem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "item removed from cart"})
 }
 
-// Add this new method for single item checkout.
-func (ctr *CartItemController) CheckoutSingleItem(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-	listingID := c.Param("listingId")
-	if listingID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "listingId parameter is required"})
-		return
-	}
-
-	resp, err := ctr.usecase.CheckoutSingleItem(c.Request.Context(), userID, listingID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Payment successful. Order confirmed.",
-		"data":    resp,
-	})
-}
-
-// Update CheckoutCart (full cart checkout) method to return response.
+// CheckoutCart handles POST /api/checkout
 func (ctr *CartItemController) CheckoutCart(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -135,6 +110,34 @@ func (ctr *CartItemController) CheckoutCart(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Payment successful. Order confirmed.",
+		"data":    resp,
+	})
+}
+
+// CheckoutSingleItem handles POST /api/checkout/:listingId
+func (ctr *CartItemController) CheckoutSingleItem(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	listingID := c.Param("listingId")
+	if listingID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "listingId is required"})
+		return
+	}
+
+	resp, err := ctr.usecase.CheckoutSingleItem(c.Request.Context(), userID, listingID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Payment successful. Order confirmed.",
