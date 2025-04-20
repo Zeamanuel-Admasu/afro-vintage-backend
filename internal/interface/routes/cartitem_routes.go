@@ -25,4 +25,5 @@ func RegisterCartItemRoutes(r *gin.Engine, ctrl *controllers.CartItemController,
 	checkoutGroup := r.Group("/api/checkout")
 	checkoutGroup.Use(middlewares.AuthMiddleware(jwtSvc))
 	checkoutGroup.POST("", middlewares.AuthorizeRoles("consumer"), ctrl.CheckoutCart)
+	checkoutGroup.POST("/:listingId", middlewares.AuthorizeRoles("consumer"), ctrl.CheckoutSingleItem)
 }
