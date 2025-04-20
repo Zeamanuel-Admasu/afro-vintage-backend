@@ -186,6 +186,10 @@ func (m *MockWarehouseRepo) MarkItemAsSkipped(ctx context.Context, itemID string
 	args := m.Called(ctx, itemID)
 	return args.Error(0)
 }
+func (m *MockWarehouseRepo) CountByStatus(ctx context.Context, status string) (int, error) {
+	args := m.Called(ctx, status)
+	return args.Int(0), args.Error(1)
+}
 
 func (suite *ProductControllerTestSuite) SetupTest() {
 	suite.productUseCase = new(MockProductUseCase)

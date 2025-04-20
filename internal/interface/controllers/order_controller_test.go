@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/admin"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/payment"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
@@ -67,6 +68,13 @@ func (m *MockOrderUseCase) GetSoldBundleHistory(ctx context.Context, supplierID 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*order.Order), args.Error(1)
+}
+func (m *MockOrderUseCase) GetAdminDashboardMetrics(ctx context.Context) (*admin.Metrics, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*admin.Metrics), args.Error(1)
 }
 
 func (suite *OrderControllerTestSuite) SetupTest() {

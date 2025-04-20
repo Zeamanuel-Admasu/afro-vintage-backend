@@ -163,3 +163,7 @@ func (r *BundleRepository) DecreaseBundleQuantity(ctx context.Context, bundleID 
 	}
 	return nil
 }
+func (r *BundleRepository) CountBundles(ctx context.Context) (int, error) {
+	count, err := r.collection.CountDocuments(ctx, bson.M{})
+	return int(count), err
+}

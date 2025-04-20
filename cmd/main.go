@@ -56,13 +56,14 @@ func main() {
 	bundleUC := bundleusecase.NewBundleUsecase(bundleRepo)
 	trustUC := trustusecase.NewTrustUsecase(productRepo, bundleRepo, userRepo)
 	cartItemUC := cartitemusecase.NewCartItemUsecase(cartItemRepo, productRepo)
-	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo)                           // Add review usecase
-	orderSvc := orderusecase.NewOrderUsecase(bundleRepo, orderRepo, warehouseRepo, paymentRepo, userRepo) // Add order service with user repo
+
+	reviewUC := reviewusecase.NewReviewUsecase(reviewRepo, orderRepo)                                     // Add review usecase
+	orderSvc := orderusecase.NewOrderUsecase(bundleRepo, orderRepo, warehouseRepo, paymentRepo, userRepo) // Add order service
 	warehouseSvc := warehouse_usecase.NewWarehouseUseCase(warehouseRepo)
 
 	// Init Controllers
 	authCtrl := controllers.NewAuthController(authUC)
-	adminCtrl := controllers.NewAdminController(userUC)
+	adminCtrl := controllers.NewAdminController(userUC, orderSvc)
 	productCtrl := controllers.NewProductController(productUC, trustUC, bundleUC, warehouseRepo)
 	bundleCtrl := controllers.NewBundleController(bundleUC, userUC)
 	consumerCtrl := controllers.NewConsumerController(orderRepo)

@@ -9,8 +9,8 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/payment"
-	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/user"
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -167,6 +167,10 @@ func (m *MockWarehouseRepo) MarkItemAsSkipped(ctx context.Context, itemID string
 	args := m.Called(ctx, itemID)
 	return args.Error(0)
 }
+func (m *MockWarehouseRepo) CountByStatus(ctx context.Context, status string) (int, error) {
+	args := m.Called(ctx, status)
+	return args.Int(0), args.Error(1)
+}
 
 func (m *MockWarehouseRepo) DeleteItem(ctx context.Context, itemID string) error {
 	args := m.Called(ctx, itemID)
@@ -194,6 +198,10 @@ func (m *MockPaymentRepo) GetPaymentsByUser(ctx context.Context, userID string) 
 	}
 	return args.Get(0).([]*payment.Payment), args.Error(1)
 }
+func (m *MockPaymentRepo) GetAllPlatformFees(ctx context.Context) (float64, float64, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(float64), args.Get(1).(float64), args.Error(2)
+}
 
 func (m *MockPaymentRepo) GetPaymentsByType(ctx context.Context, userID string, pType payment.PaymentType) ([]*payment.Payment, error) {
 	args := m.Called(ctx, userID, pType)
@@ -201,11 +209,6 @@ func (m *MockPaymentRepo) GetPaymentsByType(ctx context.Context, userID string, 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*payment.Payment), args.Error(1)
-}
-
-func (m *MockPaymentRepo) GetAllPlatformFees(ctx context.Context) (float64, error) {
-	args := m.Called(ctx)
-	return args.Get(0).(float64), args.Error(1)
 }
 
 type MockUserRepo struct {
@@ -223,6 +226,10 @@ func (m *MockUserRepo) GetByID(ctx context.Context, id string) (*user.User, erro
 func (m *MockUserRepo) CreateUser(ctx context.Context, u *user.User) error {
 	args := m.Called(ctx, u)
 	return args.Error(0)
+}
+func (m *MockUserRepo) CountActiveUsers(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
 }
 
 func (m *MockUserRepo) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
@@ -271,6 +278,10 @@ func (m *MockUserRepo) GetBlacklistedUsers(ctx context.Context) ([]*user.User, e
 	}
 	return args.Get(0).([]*user.User), args.Error(1)
 }
+func (m *MockBundleRepo) CountBundles(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}
 
 // Test Cases
 func TestNewOrderUsecase(t *testing.T) {
@@ -290,13 +301,13 @@ func TestNewOrderUsecase(t *testing.T) {
 
 func TestPurchaseBundle(t *testing.T) {
 	tests := []struct {
-		name           string
-		bundleID       string
-		resellerID     string
-		mockBundle     *bundle.Bundle
-		mockError      error
-		expectError    bool
-		errorMessage   string
+		name         string
+		bundleID     string
+		resellerID   string
+		mockBundle   *bundle.Bundle
+		mockError    error
+		expectError  bool
+		errorMessage string
 	}{
 		{
 			name:       "Success - Valid purchase",
@@ -308,8 +319,8 @@ func TestPurchaseBundle(t *testing.T) {
 				Price:      100.0,
 				Status:     "available",
 			},
-			mockError:    nil,
-			expectError:  false,
+			mockError:   nil,
+			expectError: false,
 		},
 		{
 			name:         "Error - Bundle not found",
@@ -430,16 +441,16 @@ func TestGetDashboardMetrics(t *testing.T) {
 			expectedBest:   100.0,
 		},
 		{
-			name:           "Success - No bundles",
-			supplierID:     "supplier2",
-			mockBundles:    []*bundle.Bundle{},
+			name:        "Success - No bundles",
+			supplierID:  "supplier2",
+			mockBundles: []*bundle.Bundle{},
 			mockUser: &user.User{
 				ID:         "supplier2",
 				TrustScore: 90,
 			},
-			mockError:      nil,
-			expectError:    false,
-			expectedSales:  0.0,
+			mockError:     nil,
+			expectError:   false,
+			expectedSales: 0.0,
 			expectedCounts: order.PerformanceMetrics{
 				TotalBundlesListed: 0,
 				ActiveCount:        0,
@@ -559,12 +570,12 @@ func TestGetOrderByID(t *testing.T) {
 
 func TestGetSoldBundleHistory(t *testing.T) {
 	tests := []struct {
-		name           string
-		supplierID     string
-		mockOrders     []*order.Order
-		mockError      error
-		expectError    bool
-		expectedCount  int
+		name          string
+		supplierID    string
+		mockOrders    []*order.Order
+		mockError     error
+		expectError   bool
+		expectedCount int
 	}{
 		{
 			name:       "Success - With sold bundles",
@@ -586,20 +597,20 @@ func TestGetSoldBundleHistory(t *testing.T) {
 			expectedCount: 2,
 		},
 		{
-			name:           "Success - No sold bundles",
-			supplierID:     "supplier2",
-			mockOrders:     []*order.Order{},
-			mockError:      nil,
-			expectError:    false,
-			expectedCount:  0,
+			name:          "Success - No sold bundles",
+			supplierID:    "supplier2",
+			mockOrders:    []*order.Order{},
+			mockError:     nil,
+			expectError:   false,
+			expectedCount: 0,
 		},
 		{
-			name:           "Error - Repository error",
-			supplierID:     "supplier3",
-			mockOrders:     nil,
-			mockError:      errors.New("database error"),
-			expectError:    true,
-			expectedCount:  0,
+			name:          "Error - Repository error",
+			supplierID:    "supplier3",
+			mockOrders:    nil,
+			mockError:     errors.New("database error"),
+			expectError:   true,
+			expectedCount: 0,
 		},
 	}
 

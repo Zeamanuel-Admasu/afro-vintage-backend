@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/admin"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/bundle"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/order"
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/payment"
@@ -15,7 +16,6 @@ import (
 	"github.com/Zeamanuel-Admasu/afro-vintage-backend/internal/domain/warehouse"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
 
 func NewOrderUsecase(bRepo bundle.Repository, oRepo order.Repository, wRepo warehouse.Repository, pRepo payment.Repository, uRepo user.Repository) *orderUseCaseImpl {
 	return &orderUseCaseImpl{
@@ -49,6 +49,7 @@ func (uc *orderUseCaseImpl) PurchaseBundle(ctx context.Context, bundleID, resell
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
 	found := false
 	for _, available := range availables {
 		if available.ID == b.ID {
@@ -60,12 +61,10 @@ func (uc *orderUseCaseImpl) PurchaseBundle(ctx context.Context, bundleID, resell
 		return nil, nil, nil, errors.New("bundle not available")
 	}
 
-	// prevent self-purchase
 	if b.SupplierID == resellerID {
 		return nil, nil, nil, errors.New("reseller cannot purchase their own bundle")
 	}
 
-	// process payment
 	fee, net, err := processPayment(b.Price)
 	if err != nil {
 		return nil, nil, nil, err
@@ -133,13 +132,13 @@ func (uc *orderUseCaseImpl) GetDashboardMetrics(ctx context.Context, supplierID 
 	if err != nil {
 		return nil, err
 	}
+
 	totalSales := 0.0
 	activeCount := 0
 	soldCount := 0
-	var activeBundles []*bundle.Bundle
 	bestSelling := 0.0
+	var activeBundles []*bundle.Bundle
 
-	// Get user trust score
 	userData, err := uc.userRepo.GetByID(ctx, supplierID)
 	if err != nil {
 		return nil, err
@@ -149,7 +148,6 @@ func (uc *orderUseCaseImpl) GetDashboardMetrics(ctx context.Context, supplierID 
 		if b.Status == "purchased" {
 			totalSales += b.Price
 			soldCount++
-			// Track the highest selling bundle
 			if b.Price > bestSelling {
 				bestSelling = b.Price
 			}
@@ -163,96 +161,106 @@ func (uc *orderUseCaseImpl) GetDashboardMetrics(ctx context.Context, supplierID 
 		return activeBundles[i].DateListed.After(activeBundles[j].DateListed)
 	})
 
-	performanceMetrice := order.PerformanceMetrics{
-		TotalBundlesListed: len(bundles),
-		ActiveCount:        activeCount,
-		SoldCount:          soldCount,
-	}
-
-	metrics := &order.DashboardMetrics{
+	return &order.DashboardMetrics{
 		TotalSales:         totalSales,
 		ActiveBundles:      activeBundles,
-		PerformanceMetrics: performanceMetrice,
+		PerformanceMetrics: order.PerformanceMetrics{TotalBundlesListed: len(bundles), ActiveCount: activeCount, SoldCount: soldCount},
 		Rating:             userData.TrustScore,
 		BestSelling:        bestSelling,
-	}
-
-	return metrics, nil
-}
-
-func (uc *orderUseCaseImpl) GetOrderByID(ctx context.Context, orderID string) (*order.Order, error) {
-	return uc.orderRepo.GetOrderByID(ctx, orderID)
-}
-func (uc *orderUseCaseImpl) GetSoldBundleHistory(ctx context.Context, supplierID string) ([]*order.Order, error) {
-    orders, err := uc.orderRepo.GetOrdersBySupplier(ctx, supplierID)
-    if err != nil {
-        return nil, err
-    }
-
-    var soldBundleOrders []*order.Order
-    for _, order := range orders {
-        if order.BundleID != "" && len(order.ProductIDs) == 0 {
-            soldBundleOrders = append(soldBundleOrders, order)
-        }
-    }
-
-    return soldBundleOrders, nil
+	}, nil
 }
 
 func (uc *orderUseCaseImpl) GetResellerMetrics(ctx context.Context, resellerID string) (*order.ResellerMetrics, error) {
-	// Get bought bundles
 	bundles, err := uc.bundleRepo.ListPurchasedByReseller(ctx, resellerID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get user trust score
 	userData, err := uc.userRepo.GetByID(ctx, resellerID)
 	if err != nil {
 		return nil, err
 	}
 
-	totalBoughtBundles := len(bundles)
-	bestSelling := 0.0
-
-	// Get all orders for this reseller to count actual sold items
 	orders, err := uc.orderRepo.GetOrdersByReseller(ctx, resellerID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Count actual sold items from orders
 	totalItemsSold := 0
+	bestSelling := 0.0
 	for _, order := range orders {
 		if order.Status == "completed" {
-			// For product purchases, count the number of products
 			if len(order.ProductIDs) > 0 {
 				totalItemsSold += len(order.ProductIDs)
 			}
-			// For bundle purchases, get the bundle quantity
 			if order.BundleID != "" {
-				bundle, err := uc.bundleRepo.GetBundleByID(ctx, order.BundleID)
-				if err == nil && bundle != nil {
-					totalItemsSold += bundle.Quantity
+				b, err := uc.bundleRepo.GetBundleByID(ctx, order.BundleID)
+				if err == nil && b != nil {
+					totalItemsSold += b.Quantity
 				}
 			}
 		}
 	}
-
-	// Calculate best selling from bundles
 	for _, b := range bundles {
 		if b.Price > bestSelling {
 			bestSelling = b.Price
 		}
 	}
 
-	metrics := &order.ResellerMetrics{
-		TotalBoughtBundles: totalBoughtBundles,
+	return &order.ResellerMetrics{
+		TotalBoughtBundles: len(bundles),
 		TotalItemsSold:     totalItemsSold,
 		Rating:             userData.TrustScore,
 		BestSelling:        bestSelling,
 		BoughtBundles:      bundles,
+	}, nil
+}
+
+func (uc *orderUseCaseImpl) GetSoldBundleHistory(ctx context.Context, supplierID string) ([]*order.Order, error) {
+	orders, err := uc.orderRepo.GetOrdersBySupplier(ctx, supplierID)
+	if err != nil {
+		return nil, err
 	}
 
-	return metrics, nil
+	var soldBundleOrders []*order.Order
+	for _, order := range orders {
+		if order.BundleID != "" && len(order.ProductIDs) == 0 {
+			soldBundleOrders = append(soldBundleOrders, order)
+		}
+	}
+	return soldBundleOrders, nil
+}
+
+func (uc *orderUseCaseImpl) GetAdminDashboardMetrics(ctx context.Context) (*admin.Metrics, error) {
+	totalBundles, err := uc.bundleRepo.CountBundles(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	totalUsers, err := uc.userRepo.CountActiveUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	totalSales, platformFees, err := uc.paymentRepo.GetAllPlatformFees(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	skippedClothes, err := uc.warehouseRepo.CountByStatus(ctx, "skipped")
+	if err != nil {
+		return nil, err
+	}
+
+	return &admin.Metrics{
+		TotalBundles:    totalBundles,
+		TotalUsers:      totalUsers,
+		TotalSales:      totalSales,
+		RevenueFromFees: platformFees,
+		SkippedClothes:  skippedClothes,
+	}, nil
+}
+
+func (uc *orderUseCaseImpl) GetOrderByID(ctx context.Context, orderID string) (*order.Order, error) {
+	return uc.orderRepo.GetOrderByID(ctx, orderID)
 }
